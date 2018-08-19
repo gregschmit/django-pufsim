@@ -81,7 +81,7 @@ class PUFGenerator(models.Model):
     sensitivity = models.FloatField(default=0.0)
 
     def __str__(self):
-        return "{0}({1}, {2}, {3})".format(self.architecture, self.stages, self.production_pdf, self.sample_pdf)
+        return "{0}[{1}, {2}, {3}]".format(self.architecture, self.stages, self.production_pdf, self.sample_pdf)
 
     def generate_puf(self):
         """
@@ -115,11 +115,11 @@ class BitflipAnalyzer(models.Model):
         data = [0 for x in range(self.puf_generator.stages)]
         for i in range(self.number_of_pufs):
             p = self.puf_generator.generate_puf()
-            for j in range(p.stages):
+            for j in range(len(p.stages)):
                 c = p.get_bitstring(self.base_challenge)
                 # flip j'th bit
                 c_prime = c[:len(c)-j-1] + ('0' if c[len(c)-j-1] == '1' else '1') + c[len(c)-j:]
-                t1 = p.challenge(c)
-                t2 = p.challenge(c_prime)
+                t1 = p.run(c)
+                t2 = p.run(c_prime)
                 if t1 != t2: data[j] += 1
         return data

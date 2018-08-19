@@ -1,15 +1,40 @@
+from base64 import b64encode
 try:
     from django.contrib import messages
 except ImportError:
     pass
 from django.views import generic, View
+from io import BytesIO
+from matplotlib import pyplot as plt
+import numpy as np
 import puflib as pl
 from . import models
+
+
+def graph_histogram(data, title=None, bins=None):
+    b = BytesIO()
+    fig = plt.figure()
+    plt.hist([x for x in range(len(data))], weights=data, bins=len(data), histtype='bar', ec='black')
+    if title: plt.title(title)
+    #plt.subplots_adjust(right=1.4)
+    plt.savefig(b, format='png')
+    return 'data:image/png;base64, ' + b64encode(b.getvalue()).decode()
 
 
 def try_message(request, level, msg):
     try: messages.add_message(request, level, msg)
     except NameError: pass
+
+
+class Test(generic.TemplateView):
+    template_name = 'pufsim/data_result.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        data = [np.random.randint(0, 8) for x in range(50)]
+        image = graph_histogram(data)
+        context['src'] = image
+        return context
 
 
 class Index(generic.TemplateView):
@@ -165,15 +190,16 @@ class BitflipAnalyzerDelete(CRUDMixin, AnalysisMixin, BitflipAnalyzerMixin, gene
 
 class BitflipAnalyzerRun(generic.TemplateView):
     model = models.BitflipAnalyzer
-    template_name = 'pufsim/show_image.html'
+    template_name = 'pufsim/data_result.html'
 
     def analyze(self):
-        data = self.model.object.get(self.kwargs.get('pk')).run()
-        return data  # return image data
+        obj = self.model.objects.get(pk=self.kwargs.get('pk'))
+        data = obj.run()
+        return graph_histogram(data, title=str(obj)), str(data)
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(*args, **kwargs)
-        context['imgsrc'] = self.analyze()
+        context = super().get_context_data(**kwargs)
+        context['src'], context['text'] = self.analyze()
         context['header'] = 'Bitflip Analyzer'
         return context
 
