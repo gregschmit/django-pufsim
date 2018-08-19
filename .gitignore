@@ -1,6 +1,5 @@
 # gns: added
 *.swp
-migrations
 
 # Created by https://www.gitignore.io/api/macos,django,python
 
