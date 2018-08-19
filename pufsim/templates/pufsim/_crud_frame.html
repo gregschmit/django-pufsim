@@ -1,0 +1,51 @@
+{% load pufsim_util %}
+{% comment %}
+CRUD frame displays a model and provides CRUD operations.
+
+  Required Params:
+   - objects
+   - model_name
+   - model_uri
+{% endcomment %}
+<div class="row">
+  <div class="column small-8">
+    <h2>{{ model_name }}</h2>
+  </div>
+  <div class="column small-4">
+    <ul class="menu simple align-right">
+      <li><a href="/{{ model_uri }}/create"><i class="fi-plus pufsim-green"></i> <strong>Create</strong></a></li>
+    </ul>
+  </div>
+</div>
+<div class="table-scroll">
+  <table>
+    <thead>
+      <tr>
+        {% for f in fields %}
+          <th>{{ f|default_if_none:'' }}</th>
+        {% endfor %}
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for o in objects %}
+        <tr>
+          {% for f in fields %}
+          <td>{{ o|get_attr:f|default_if_none:'' }}</td>
+          {% endfor %}
+          <td>
+            <ul class="text-bold menu simple align-right">
+              <li><a title="update" href="/{{ model_uri }}/{{ o.id }}/update"><strong>Update</strong></a></li>
+              <li><a title="delete" href="/{{ model_uri }}/{{ o.id }}/delete"><strong>Delete</strong></a></li>
+              {% if actions %}
+                {% for action in actions|split_by:',' %}
+                  <li><a title="{{ action }}" href="/{{ model_uri }}/{{ o.id }}/{{ action }}"><strong>{{ action|title }}</strong></a></li>
+                {% endfor %}
+              {% endif %}
+            </ul>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>

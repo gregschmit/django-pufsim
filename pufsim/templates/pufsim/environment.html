@@ -1,0 +1,8 @@
+{% extends 'pufsim/master.html' %}
+
+{% block main %}
+<h1>Environment</h1>
+<hr>
+{% include 'pufsim/_crud_frame.html' with objects=pdfs model_name='PDFs' model_uri='pdfs' fields=pdfs_fields %}
+{% include 'pufsim/_crud_frame.html' with objects=pufgs model_name='PUF Generators' model_uri='pufgs' fields=pufgs_fields actions='quicktest' %}
+{% endblock %}

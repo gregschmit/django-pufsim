@@ -1,0 +1,12 @@
+{% extends 'pufsim/master.html' %}
+
+{% block main %}
+<h1>{{ form_header }}</h1>
+<p>{{ form_message }}</p>
+<form class="form-group" method="post">
+  {% csrf_token %}
+  <input type="hidden" name="next" value="{{ next }}">
+  {{ form.as_p }}
+  <input type="submit" class="button" value="{{ form_submit|default:"Submit" }}">
+</form>
+{% endblock %}

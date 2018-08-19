@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <title>pufsim</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/foundation-sites@6.5.0-rc.2/dist/css/foundation-float.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/foundicons/3.0.0/foundation-icons.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/motion-ui@1.2.3/dist/motion-ui.min.css" />
+  <link rel="stylesheet" href="/static/css/pufsim.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/foundation-sites@6.5.0-rc.2/dist/js/foundation.min.js"></script>
+</head>
+
+<body>
+
+  <div class="pufsim-head">
+    <div class="pufsim-wrap top-bar">
+      <div class="top-bar-left">
+        <span class="h1"><a href="/">pufsim</a></span>
+        <span class="h6">v0.1</span>
+      </div>
+      <div class="top-bar-right text-right">
+        <ul class="menu">
+          <li><a href="/environment">Environment</a></li>
+          <li><a href="/analysis">Analysis</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  {% if messages %}
+    {% for m in messages %}
+      <div class="callout small text-center {{ m.tags }}" data-closable>
+        <span>{{ m }}</span>
+        <button class="close-button small" style="line-height: .8" aria-label="Dismiss alert" type="button" data-close>
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="pufsim-wrap">
+    {% block main %}{% endblock %}
+  </div>
+
+  <div class="pufsim-wrap">
+    <hr>
+    <div class="row">
+      <div class="columns medium-6">
+        <p>Copyright 2018, Gregory N. Schmit</p>
+      </div>
+      <div class="columns medium-6 text-right">
+        <p><a href="https://github.com/gregschmit/puflib">https://github.com/gregschmit/puflib</a></p>
+        <p><a href="https://github.com/gregschmit/django-pufsim">https://github.com/gregschmit/django-pufsim</a></p>
+      </div>
+    </div>
+  </div>
+
+</body>
+
+</html>

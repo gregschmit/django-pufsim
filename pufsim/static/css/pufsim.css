@@ -1,0 +1,32 @@
+/* Simple customizations for the pufsim project */
+
+/* top-bar blue/white theme */
+.pufsim-head, .pufsim-head .top-bar, .pufsim-head .menu {
+  background-color: #0f67c5;
+  color: #efefef;
+}
+.pufsim-head a { color: #eee; }
+.pufsim-head a:hover { color: white; }
+
+.pufsim-wrap {
+  max-width: 65em;
+  margin: 0 auto;
+  padding: 1em;
+}
+
+.pufsim-border-left { border-left: 2px solid grey !important; }
+
+.pufsim-green { color: green; }
+.pufsim-red { color: red; }
+.pufsim-blue { color: blue; }
+
+/* hydroxycut for tables */
+thead th, tbody td, tbody th { padding: .1rem .1rem .1rem .1rem; }
+
+/* hydroxycut for headers */
+h1 { font-size: 1.7em; }
+h2 { font-size: 1.5em; }
+h3 { font-size: 1.25em; }
+h4 { font-size: 1.18em; }
+h5 { font-size: 1.14em; }
+h6 { font-size: 1.1em; }
