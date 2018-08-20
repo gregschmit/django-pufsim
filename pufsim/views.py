@@ -14,7 +14,11 @@ from . import models
 def graph_histogram(data, title=None, bins=None):
     b = BytesIO()
     fig = plt.figure()
-    plt.hist([x for x in range(len(data))], weights=data, bins=len(data), histtype='bar', ec='black')
+    plt.hist([x for x in range(len(data))], weights=data, bins=[x-0.5 for x in range(len(data)+1)], color='black', rwidth=0.5, ec='black')
+    plt.xticks([x for x in range(len(data))])
+    #ax = plt.gca()
+    #for i, v in enumerate(data):
+    #    ax.text(i-.14, v+.1, str(v), color='black')
     if title: plt.title(title)
     #plt.subplots_adjust(right=1.4)
     plt.savefig(b, format='png')
@@ -192,14 +196,12 @@ class BitflipAnalyzerRun(generic.TemplateView):
     model = models.BitflipAnalyzer
     template_name = 'pufsim/data_result.html'
 
-    def analyze(self):
-        obj = self.model.objects.get(pk=self.kwargs.get('pk'))
-        data = obj.run()
-        return graph_histogram(data, title=str(obj)), str(data)
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['src'], context['text'] = self.analyze()
+        obj = self.model.objects.get(pk=self.kwargs.get('pk'))
+        data = obj.run()
+        context['src'] = graph_histogram(data, title=str(obj))
+        context['text'] = str(data)
         context['header'] = 'Bitflip Analyzer'
         return context
 
