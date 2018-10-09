@@ -11,23 +11,14 @@ import puflib as pl
 from . import models
 
 
-def graph_histogram(data, title=None, bins=None):
+def graph_histogram(data, bins=None, top=1):
     b = BytesIO()
     fig = plt.figure()
+    print("range is {0} to {1}".format(0, top))
     plt.hist([x for x in range(len(data))], weights=data, bins=[x-0.5 for x in range(len(data)+1)], color='black', rwidth=0.5, ec='black')
-    plt.xticks([x for x in range(len(data))])
-    #ax = plt.gca()
-    #for i, v in enumerate(data):
-    #    ax.text(i-.14, v+.1, str(v), color='black')
-    if title: plt.title(title)
-    #plt.subplots_adjust(right=1.4)
+    plt.ylim(0, top)
     plt.savefig(b, format='png')
     return 'data:image/png;base64, ' + b64encode(b.getvalue()).decode()
-
-
-def try_message(request, level, msg):
-    try: messages.add_message(request, level, msg)
-    except NameError: pass
 
 
 class Test(generic.TemplateView):
@@ -36,7 +27,7 @@ class Test(generic.TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         data = [np.random.randint(0, 8) for x in range(50)]
-        image = graph_histogram(data)
+        image = graph_histogram(data, top=8)
         context['src'] = image
         return context
 
@@ -69,7 +60,7 @@ class Analysis(generic.TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['bitflip_analyzers'] = models.BitflipAnalyzer.objects.all()
-        context['bitflip_analyzers_fields'] = ['id', 'puf_generator', 'base_challenge', 'number_of_pufs']
+        context['bitflip_analyzers_fields'] = ['id', 'puf_generator', 'base_challenge', 'number_of_pufs', 'progress', 'pid']
         return context
 
 
@@ -125,6 +116,10 @@ class PDFCreate(CRUDMixin, EnvironmentMixin, PDFMixin, generic.CreateView):
     form_header = 'Create PDF'
 
 
+class PDFShow(CRUDMixin, EnvironmentMixin, PDFMixin, generic.DetailView):
+    form_header = 'Show PDF'
+
+
 class PDFUpdate(CRUDMixin, EnvironmentMixin, PDFMixin, generic.UpdateView):
     form_header = 'Edit PDF'
 
@@ -145,6 +140,10 @@ class PUFGeneratorCreate(CRUDMixin, EnvironmentMixin, PUFGeneratorMixin, generic
     form_header = 'Create PUF Generator'
 
 
+class PUFGeneratorShow(CRUDMixin, EnvironmentMixin, PUFGeneratorMixin, generic.DetailView):
+    form_header = 'Show PUF Generator'
+
+
 class PUFGeneratorUpdate(CRUDMixin, EnvironmentMixin, PUFGeneratorMixin, generic.UpdateView):
     form_header = 'Edit PUF Generator'
 
@@ -159,16 +158,19 @@ class PUFGeneratorQuicktest(generic.RedirectView):
     def get_redirect_url(self, **kwargs):
         pk = kwargs.get('pk', None)
         if not pk:
-            try_message(self.request, messages.ERROR, "quicktest failed: object not specified")
+            try: messages.add_message(self.request, messages.ERROR, "quicktest failed: object not specified")
+            except NameError: pass
             return '/environment/'
         try:
             obj = models.PUFGenerator.objects.get(pk=pk)
         except:
-            try_message(self.request, messages.ERROR, "quicktest failed: object not found")
+            try: messages.add_message(self.request, messages.ERROR, "quicktest failed: object not found")
+            except NameError: pass
             return '/environment/'
         res = obj.generate_puf().quicktest()
         msg = "puf from pufg{0}: challenge {1} returned [{2}], {3:.0%} of the time".format(kwargs['pk'], *res)
-        try_message(self.request, messages.INFO, msg)
+        try: messages.add_message(self.request, messages.INFO, msg)
+        except NameError: pass
         return '/environment/'
 
 
@@ -184,6 +186,25 @@ class BitflipAnalyzerCreate(CRUDMixin, AnalysisMixin, BitflipAnalyzerMixin, gene
     form_header = 'Create Bitflip Analyzer'
 
 
+class BitflipAnalyzerShow(generic.TemplateView):
+    model = models.BitflipAnalyzer
+    template_name = 'pufsim/data_result.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        obj = self.model.objects.get(pk=self.kwargs.get('pk'))
+        data = eval(obj.data.encode())
+        if obj.pid:
+            context['header'] = 'Bitflip Analyzer'
+            context['text'] = "Data not ready"
+        else:
+            context['header'] = 'Bitflip Analyzer'
+            context['title'] = str(obj)
+            context['src'] = graph_histogram(data, top=obj.number_of_pufs)
+            context['data'] = data
+        return context
+
+
 class BitflipAnalyzerUpdate(CRUDMixin, AnalysisMixin, BitflipAnalyzerMixin, generic.UpdateView):
     form_header = 'Edit Bitflip Analyzer'
 
@@ -192,18 +213,22 @@ class BitflipAnalyzerDelete(CRUDMixin, AnalysisMixin, BitflipAnalyzerMixin, gene
     form_message = "Are you sure you want to delete PUF Generator {obj}?"
     form_submit = 'Delete'
 
-class BitflipAnalyzerRun(generic.TemplateView):
-    model = models.BitflipAnalyzer
-    template_name = 'pufsim/data_result.html'
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+class BitflipAnalyzerRun(generic.RedirectView):
+    model = models.BitflipAnalyzer
+
+    def get_redirect_url(self, *args, **kwargs):
         obj = self.model.objects.get(pk=self.kwargs.get('pk'))
-        data = obj.run()
-        context['src'] = graph_histogram(data, title=str(obj))
-        context['text'] = str(data)
-        context['header'] = 'Bitflip Analyzer'
-        return context
+        # if already running, throw notice
+        if obj.pid:
+            try: messages.add_message(self.request, messages.WARNING, "BitflipAnalyzer already running")
+            except NameError: pass
+            return '/analysis/'
+        # if needed, spawn the running process & redirect
+        obj.run_bg()
+        try: messages.add_message(self.request, messages.INFO, "BitflipAnalyzer spawned; refresh to update progress")
+        except NameError: pass
+        return '/analysis/'
 
 
 # run 100 pufs and for each, 0000, 0100, 1100 and see how often each change

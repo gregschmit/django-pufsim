@@ -3,6 +3,18 @@
 {% block main %}
 <h1>{{ header }}</h1>
 <hr>
-<img src="{{ src }}">
+<figure>
+  <figcaption>{{ title }}</figcaption>
+  <img src="{{ src }}">
+</figure>
 <p>{{ text }}</p>
+<h2>Data:</h2>
+<table class="">
+  {% for d in data %}
+  <tr>
+    <td class="">{{ forloop.counter0 }}</td>
+    <td class="">{{ d }}</td>
+  </tr>
+  {% endfor %}
+</table>
 {% endblock %}

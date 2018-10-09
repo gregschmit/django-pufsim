@@ -1,6 +1,9 @@
+from django.core.management import call_command
 from django.db import models
 import numpy as np
 import puflib as pl
+import subprocess
+import sys
 
 
 class PDF(models.Model):
@@ -21,6 +24,8 @@ class PDF(models.Model):
 
     class Meta:
         verbose_name = 'Probability Distribution Function'
+
+    def get_actions(self): return None
 
     @property
     def opt_fields(self):
@@ -48,8 +53,7 @@ class PDF(models.Model):
         return super().save(*args, **kwargs)
 
     def __str__(self):
-        return '{0}[{1}({2})]'.format(
-            self.id,
+        return '{0}({1})'.format(
             self.distribution,
             ', '.join(
                 ['{0}={1}'.format(x, str(getattr(self, x, None))) for x in self.opt_fields]
@@ -81,7 +85,10 @@ class PUFGenerator(models.Model):
     sensitivity = models.FloatField(default=0.0)
 
     def __str__(self):
-        return "{0}[{1}, {2}, {3}]".format(self.architecture, self.stages, self.production_pdf, self.sample_pdf)
+        return "PUFGenerator-{0}[stages={1}, production_pdf={2}, sample_pdf={3}]".format(self.architecture, self.stages, self.production_pdf, self.sample_pdf)
+
+    def get_actions(self):
+        return ['quicktest']
 
     def generate_puf(self):
         """
@@ -104,16 +111,31 @@ class BitflipAnalyzer(models.Model):
     puf_generator = models.ForeignKey(PUFGenerator, on_delete=models.CASCADE)
     base_challenge = models.IntegerField(default=0, help_text="Enter the challenge as a decimal value and the system will truncate or add zeros to the most significant bit side (e.g., 12 will be converted to 1100 and then padded to 001100 if the PUF has 6 stages)")
     number_of_pufs = models.IntegerField(default=100)
+    progress = models.IntegerField(default=0, editable=False)
+    data = models.TextField(blank=True, editable=False)
+    pid = models.IntegerField(default=0, editable=False)
     
     def __str__(self):
-        return "{0}[{1}, {2}, {3}]".format(self.id, self.puf_generator, self.base_challenge, self.number_of_pufs)
+        return "BitflipAnalyzer[{0}, base_challenge={1}, n_pufs={2}]".format(self.puf_generator, self.base_challenge, self.number_of_pufs)
+
+    def get_actions(self):
+        """
+        Return a list of tuples of possible actions and links.
+        """
+        a = []
+        if not self.pid: a.append('run')
+        if self.data and not self.pid: a.append('show')
+        return a
+
 
     def run(self):
         """
-        Build pufs, process them, return data.
+        Build pufs, process them while updating progress, return data.
         """
         data = [0 for x in range(self.puf_generator.stages)]
         for i in range(self.number_of_pufs):
+            self.progress = int(i*100 / self.number_of_pufs)
+            self.save()
             p = self.puf_generator.generate_puf()
             for j in range(len(p.stages)):
                 c = p.get_bitstring(self.base_challenge)
@@ -122,4 +144,13 @@ class BitflipAnalyzer(models.Model):
                 t1 = p.run(c)
                 t2 = p.run(c_prime)
                 if t1 != t2: data[j] += 1
+        self.progress = 100
+        self.data = data
+        self.save()
         return data
+
+    def run_bg(self):
+        """
+        Spawn a background process that runs this object's run() method
+        """
+        call_command('run_analyzer', 'BitflipAnalyzer', str(self.id))

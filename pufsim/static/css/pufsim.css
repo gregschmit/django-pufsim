@@ -21,7 +21,13 @@
 .pufsim-blue { color: blue; }
 
 /* hydroxycut for tables */
-thead th, tbody td, tbody th { padding: .1rem .1rem .1rem .1rem; }
+thead th, tbody td, tbody th { padding: .1rem .2rem .1rem .2rem; }
+
+/* column dividers */
+table td, table th {
+  border: 1px solid #aaa;
+  /* border-right: 1px solid #aaa; */
+}
 
 /* hydroxycut for headers */
 h1 { font-size: 1.7em; }

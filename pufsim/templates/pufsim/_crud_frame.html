@@ -31,17 +31,15 @@ CRUD frame displays a model and provides CRUD operations.
       {% for o in objects %}
         <tr>
           {% for f in fields %}
-          <td>{{ o|get_attr:f|default_if_none:'' }}</td>
+            <td>{{ o|get_attr:f|default_if_none:'' }}</td>
           {% endfor %}
           <td>
             <ul class="text-bold menu simple align-right">
+              {% for action in o.get_actions %}
+                <li><a title="{{ action }}" href="/{{ model_uri }}/{{ o.id }}/{{ action }}"><strong>{{ action|title }}</strong></a></li>
+              {% endfor %}
               <li><a title="update" href="/{{ model_uri }}/{{ o.id }}/update"><strong>Update</strong></a></li>
               <li><a title="delete" href="/{{ model_uri }}/{{ o.id }}/delete"><strong>Delete</strong></a></li>
-              {% if actions %}
-                {% for action in actions|split_by:',' %}
-                  <li><a title="{{ action }}" href="/{{ model_uri }}/{{ o.id }}/{{ action }}"><strong>{{ action|title }}</strong></a></li>
-                {% endfor %}
-              {% endif %}
             </ul>
           </td>
         </tr>
