@@ -1,5 +1,6 @@
 import os
 from setuptools import find_packages, setup
+import _version
 
 with open(os.path.join(os.path.dirname(__file__), 'README.rst')) as readme:
     README = readme.read()
@@ -9,8 +10,7 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 
 setup(
     name='django-pufsim',
-    use_scm_version=True,
-    setup_requires=['setuptools_scm'],
+    version=_version.get_version(),
     packages=find_packages(),
     include_package_data=True,
     license='BSD License',
