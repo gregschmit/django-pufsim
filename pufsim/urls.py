@@ -9,6 +9,7 @@ urlpatterns = [
     path('environment/', views.Environment.as_view(), name='environment'),
     path('analysis/', views.Analysis.as_view(), name='analysis'),
     path('bitflip_analyzers/<int:pk>/run/', views.BitflipAnalyzerRun.as_view(), name='run_bitflip_analyzer'),
+    path('challenge_pair_analyzers/<int:pk>/run/', views.ChallengePairAnalyzerRun.as_view(), name='run_challenge_pair_analyzer'),
     path('pufgs/<int:pk>/quicktest/', views.PUFGeneratorQuicktest.as_view(), name='quicktest_pufg'),
 ]
 
@@ -17,6 +18,7 @@ cruds = [
     ['pdfs', 'PDF'],
     ['pufgs', 'PUFGenerator'],
     ['bitflip_analyzers', 'BitflipAnalyzer'],
+    ['challenge_pair_analyzers', 'ChallengePairAnalyzer'],
 ]
 for c in cruds:
     urlpatterns.append(path(c[0] + '/create/', getattr(views, c[1] + 'Create').as_view(), name='create_' + c[0][:-1]))

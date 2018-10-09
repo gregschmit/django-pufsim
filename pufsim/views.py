@@ -14,7 +14,6 @@ from . import models
 def graph_histogram(data, bins=None, top=1):
     b = BytesIO()
     fig = plt.figure()
-    print("range is {0} to {1}".format(0, top))
     plt.hist([x for x in range(len(data))], weights=data, bins=[x-0.5 for x in range(len(data)+1)], color='black', rwidth=0.5, ec='black')
     plt.ylim(0, top)
     plt.savefig(b, format='png')
@@ -61,6 +60,8 @@ class Analysis(generic.TemplateView):
         context = super().get_context_data(**kwargs)
         context['bitflip_analyzers'] = models.BitflipAnalyzer.objects.all()
         context['bitflip_analyzers_fields'] = ['id', 'puf_generator', 'base_challenge', 'number_of_pufs', 'progress', 'pid']
+        context['challenge_pair_analyzers'] = models.ChallengePairAnalyzer.objects.all()
+        context['challenge_pair_analyzers_fields'] = ['id', 'puf_generator', 'base_challenge', 'test_challenge', 'number_of_pufs', 'progress', 'pid']
         return context
 
 
@@ -210,7 +211,7 @@ class BitflipAnalyzerUpdate(CRUDMixin, AnalysisMixin, BitflipAnalyzerMixin, gene
 
 
 class BitflipAnalyzerDelete(CRUDMixin, AnalysisMixin, BitflipAnalyzerMixin, generic.DeleteView):
-    form_message = "Are you sure you want to delete PUF Generator {obj}?"
+    form_message = "Are you sure you want to delete BitflipAnalyzer {obj}?"
     form_submit = 'Delete'
 
 
@@ -226,10 +227,65 @@ class BitflipAnalyzerRun(generic.RedirectView):
             return '/analysis/'
         # if needed, spawn the running process & redirect
         obj.run_bg()
-        try: messages.add_message(self.request, messages.INFO, "BitflipAnalyzer spawned; refresh to update progress")
+        try: messages.add_message(self.request, messages.INFO, "Bitflip Analyzer spawned; refresh to update progress")
         except NameError: pass
         return '/analysis/'
 
 
-# run 100 pufs and for each, 0000, 0100, 1100 and see how often each change
-# challenge pair analyzer
+# Challenge Pair Analyzer
+
+class ChallengePairAnalyzerMixin:
+    model = models.ChallengePairAnalyzer
+    fields = ['puf_generator', 'base_challenge', 'test_challenge', 'number_of_pufs']
+    label = 'Challenge Pair Analyzer'
+
+
+class ChallengePairAnalyzerCreate(CRUDMixin, AnalysisMixin, ChallengePairAnalyzerMixin, generic.CreateView):
+    form_header = 'Create Challenge Pair Analyzer'
+
+
+class ChallengePairAnalyzerShow(generic.TemplateView, ChallengePairAnalyzerMixin):
+    model = models.ChallengePairAnalyzer
+    template_name = 'pufsim/data_result.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        obj = self.model.objects.get(pk=self.kwargs.get('pk'))
+        data = eval(obj.data.encode())
+        if obj.pid:
+            context['header'] = self.label
+            context['text'] = "Data not ready"
+        else:
+            context['header'] = self.label
+            context['title'] = str(obj)
+            context['src'] = graph_histogram(data, top=obj.number_of_pufs)
+            context['data'] = data
+        return context
+
+
+class ChallengePairAnalyzerUpdate(CRUDMixin, AnalysisMixin, ChallengePairAnalyzerMixin, generic.UpdateView):
+    form_header = 'Edit Challenge Pair Analyzer'
+
+
+class ChallengePairAnalyzerDelete(CRUDMixin, AnalysisMixin, ChallengePairAnalyzerMixin, generic.DeleteView):
+    form_message = "Are you sure you want to delete Challenge Pair Analyzer {obj}?"
+    form_submit = 'Delete'
+
+
+class ChallengePairAnalyzerRun(generic.RedirectView):
+    model = models.ChallengePairAnalyzer
+
+    def get_redirect_url(self, *args, **kwargs):
+        obj = self.model.objects.get(pk=self.kwargs.get('pk'))
+        # if already running, throw notice
+        if obj.pid:
+            try: messages.add_message(self.request, messages.WARNING, "ChallengePairAnalyzer already running")
+            except NameError: pass
+            return '/analysis/'
+        # if needed, spawn the running process & redirect
+        obj.run_bg()
+        try: messages.add_message(self.request, messages.INFO, "ChallengePairAnalyzer spawned; refresh to update progress")
+        except NameError: pass
+        return '/analysis/'
+
+

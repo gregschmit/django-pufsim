@@ -10,7 +10,6 @@ class Command(BaseCommand):
         parser.add_argument('analyzer_id', nargs=1, type=int)
 
     def handle(self, *args, **options):
-        print(options)
         obj_type = getattr(models, options['analyzer_type'][0], None)
         if not obj_type:
             print("PUFSIM :: (run_analyzer) obj_type not found")

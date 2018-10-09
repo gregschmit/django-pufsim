@@ -9,9 +9,9 @@
 .pufsim-head a:hover { color: white; }
 
 .pufsim-wrap {
-  max-width: 65em;
+  max-width: 80em;
   margin: 0 auto;
-  padding: 1em;
+  padding: .5em;
 }
 
 .pufsim-border-left { border-left: 2px solid grey !important; }

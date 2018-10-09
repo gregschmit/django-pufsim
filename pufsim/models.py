@@ -120,7 +120,7 @@ class BitflipAnalyzer(models.Model):
 
     def get_actions(self):
         """
-        Return a list of tuples of possible actions and links.
+        Return a list of tuples of possible actions.
         """
         a = []
         if not self.pid: a.append('run')
@@ -154,3 +154,54 @@ class BitflipAnalyzer(models.Model):
         Spawn a background process that runs this object's run() method
         """
         call_command('run_analyzer', 'BitflipAnalyzer', str(self.id))
+
+
+class ChallengePairAnalyzer(models.Model):
+    """
+    Build many PUFs and test two challenges and how they affect the outcome..
+    """
+    puf_generator = models.ForeignKey(PUFGenerator, on_delete=models.CASCADE)
+    base_challenge = models.IntegerField(default=0, help_text="Enter the challenge as a decimal value and the system will truncate or add zeros to the most significant bit side (e.g., 12 will be converted to 1100 and then padded to 001100 if the PUF has 6 stages)")
+    test_challenge = models.IntegerField(default=0, help_text="Enter the challenge as a decimal value and the system will truncate or add zeros to the most significant bit side (e.g., 12 will be converted to 1100 and then padded to 001100 if the PUF has 6 stages)")
+    number_of_pufs = models.IntegerField(default=100)
+    progress = models.IntegerField(default=0, editable=False)
+    data = models.TextField(blank=True, editable=False)
+    pid = models.IntegerField(default=0, editable=False)
+    
+    def __str__(self):
+        return "ChallengePairAnalyzer[{0}, base_challenge={1}, test_challenge={2}, n_pufs={3}]".format(self.puf_generator, self.base_challenge, self.test_challenge, self.number_of_pufs)
+
+    def get_actions(self):
+        """
+        Return a list of tuples of possible actions.
+        """
+        a = []
+        if not self.pid: a.append('run')
+        if self.data and not self.pid: a.append('show')
+        return a
+
+
+    def run(self):
+        """
+        Build pufs, process them while updating progress, return data.
+        """
+        data = 0
+        for i in range(self.number_of_pufs):
+            self.progress = int(i*100 / self.number_of_pufs)
+            self.save()
+            p = self.puf_generator.generate_puf()
+            c = p.get_bitstring(self.base_challenge)
+            c_prime = p.get_bitstring(self.test_challenge)
+            t1 = p.run(c)
+            t2 = p.run(c_prime)
+            if t1 != t1: data += 1
+        self.progress = 100
+        self.data = data
+        self.save()
+        return data
+
+    def run_bg(self):
+        """
+        Spawn a background process that runs this object's run() method
+        """
+        call_command('run_analyzer', 'ChallengePairAnalyzer', str(self.id))
