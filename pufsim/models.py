@@ -1,7 +1,7 @@
-from django.core.management import call_command
 from django.db import models
 import numpy as np
 import puflib as pl
+import subprocess
 import sys
 
 
@@ -152,7 +152,7 @@ class BitflipAnalyzer(models.Model):
         """
         Spawn a background process that runs this object's run() method
         """
-        call_command('run_analyzer', 'BitflipAnalyzer', str(self.id))
+        return subprocess.Popen(['python3', 'manage.py', 'run_analyzer', 'BitflipAnalyzer', str(self.id)])
 
 
 class ChallengePairAnalyzer(models.Model):
@@ -203,4 +203,4 @@ class ChallengePairAnalyzer(models.Model):
         """
         Spawn a background process that runs this object's run() method
         """
-        call_command('run_analyzer', 'ChallengePairAnalyzer', str(self.id))
+        return subprocess.Popen(['python3', 'manage.py', 'run_analyzer', 'ChallengePairAnalyzer', str(self.id)])
