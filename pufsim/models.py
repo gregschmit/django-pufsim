@@ -2,7 +2,6 @@ from django.core.management import call_command
 from django.db import models
 import numpy as np
 import puflib as pl
-import subprocess
 import sys
 
 
@@ -194,7 +193,7 @@ class ChallengePairAnalyzer(models.Model):
             c_prime = p.get_bitstring(self.test_challenge)
             t1 = p.run(c)
             t2 = p.run(c_prime)
-            if t1 != t1: data += 1
+            if t1 != t2: data += 1
         self.progress = 100
         self.data = data
         self.save()

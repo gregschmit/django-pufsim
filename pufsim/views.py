@@ -244,23 +244,21 @@ class ChallengePairAnalyzerCreate(CRUDMixin, AnalysisMixin, ChallengePairAnalyze
     form_header = 'Create Challenge Pair Analyzer'
 
 
-class ChallengePairAnalyzerShow(generic.TemplateView, ChallengePairAnalyzerMixin):
-    model = models.ChallengePairAnalyzer
-    template_name = 'pufsim/data_result.html'
+class ChallengePairAnalyzerShow(generic.RedirectView, ChallengePairAnalyzerMixin):
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+    def get_redirect_url(self, *args, **kwargs):
         obj = self.model.objects.get(pk=self.kwargs.get('pk'))
-        data = eval(obj.data.encode())
+        try:
+            data = int(obj.data)
+            percent = 100 * (data / obj.number_of_pufs)
+        except ValueError:
+            messages.add_message(self.request, messages.WARNING, "ChallengePairAnalyzer not done running")
+            return '/analysis/'
         if obj.pid:
-            context['header'] = self.label
-            context['text'] = "Data not ready"
-        else:
-            context['header'] = self.label
-            context['title'] = str(obj)
-            context['src'] = graph_histogram(data, top=obj.number_of_pufs)
-            context['data'] = data
-        return context
+            messages.add_message(self.request, messages.WARNING, "ChallengePairAnalyzer not done running")
+            return '/analysis/'
+        messages.add_message(self.request, messages.SUCCESS, "ChallengePairAnalyzer returned {0}, or {1}%".format(data, percent))
+        return '/analysis/'
 
 
 class ChallengePairAnalyzerUpdate(CRUDMixin, AnalysisMixin, ChallengePairAnalyzerMixin, generic.UpdateView):
