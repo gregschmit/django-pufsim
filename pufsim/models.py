@@ -1,8 +1,44 @@
-from django.db import models
+from django.db import models, transaction
 import numpy as np
+import os
 import puflib as pl
 import subprocess
 import sys
+
+
+class ModelJobRunner(models.Model):
+
+    class Meta:
+        abstract = True
+
+    @classmethod
+    def check_pids(cls):
+        objs = cls.objects.all()
+        for obj in objs:
+            obj.check_pid()
+
+    def check_pid(self):
+        if not self.pid: return
+        e = True
+        try: os.kill(self.pid, 0)
+        except OSError: e = False
+        if not e:
+            self.pid = 0
+            self.save()
+
+    #@transaction.atomic
+    def spawn(self):
+        obj = type(self).objects.get(id=self.id)
+        args = ['run_analyzer', type(self).__name__, str(self.id)]
+        #cmd = ['/usr/local/bin/python3', '/server/apps/pufsim_project/manage.py'] + args
+        cmd = ['python3', 'manage.py'] + args
+        print(' '.join(cmd))
+        p = subprocess.Popen(cmd, shell=True)
+        p.communicate()
+        #p = subprocess.Popen(['python', 'manage.py', *cmd], shell=True)
+        #obj.pid = p.pid
+        #obj.save()
+        return p
 
 
 class PDF(models.Model):
@@ -102,7 +138,7 @@ class PUFGenerator(models.Model):
         return None
 
 
-class BitflipAnalyzer(models.Model):
+class BitflipAnalyzer(ModelJobRunner):
     """
     Build many PUFs and test challenges with bitflips to examine how often the
     response changes.
@@ -148,14 +184,8 @@ class BitflipAnalyzer(models.Model):
         self.save()
         return data
 
-    def run_bg(self):
-        """
-        Spawn a background process that runs this object's run() method
-        """
-        return subprocess.Popen(['python3', 'manage.py', 'run_analyzer', 'BitflipAnalyzer', str(self.id)])
 
-
-class ChallengePairAnalyzer(models.Model):
+class ChallengePairAnalyzer(ModelJobRunner):
     """
     Build many PUFs and test two challenges and how they affect the outcome..
     """
@@ -198,9 +228,3 @@ class ChallengePairAnalyzer(models.Model):
         self.data = data
         self.save()
         return data
-
-    def run_bg(self):
-        """
-        Spawn a background process that runs this object's run() method
-        """
-        return subprocess.Popen(['python3', 'manage.py', 'run_analyzer', 'ChallengePairAnalyzer', str(self.id)])

@@ -1,4 +1,5 @@
 from django.core.management.base import BaseCommand, CommandError
+from django.db import transaction
 import os
 from pufsim import models
 
@@ -10,7 +11,11 @@ class Command(BaseCommand):
         parser.add_argument('analyzer_id', nargs=1, type=int)
 
     def handle(self, *args, **options):
+        print("starting handler")
         obj_type = getattr(models, options['analyzer_type'][0], None)
+        obj = obj_type.objects.get(pk=options['analyzer_id'][0])
+        obj.pid = os.getpid()
+        obj.save()
         if not obj_type:
             print("PUFSIM :: (run_analyzer) obj_type not found")
             return
@@ -18,8 +23,6 @@ class Command(BaseCommand):
         if not obj:
             print("PUFSIM :: (run_analyzer) obj_type not found")
             return
-        obj.pid = os.getpid()
-        obj.save()
         obj.run()
         obj = obj_type.objects.get(pk=options['analyzer_id'][0])
         obj.pid = 0

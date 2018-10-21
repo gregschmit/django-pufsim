@@ -58,6 +58,8 @@ class Analysis(generic.TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        models.BitflipAnalyzer.check_pids()
+        models.ChallengePairAnalyzer.check_pids()
         context['bitflip_analyzers'] = models.BitflipAnalyzer.objects.all()
         context['bitflip_analyzers_fields'] = ['id', 'puf_generator', 'base_challenge', 'number_of_pufs', 'progress', 'pid']
         context['challenge_pair_analyzers'] = models.ChallengePairAnalyzer.objects.all()
@@ -226,7 +228,7 @@ class BitflipAnalyzerRun(generic.RedirectView):
             except NameError: pass
             return '/analysis/'
         # if needed, spawn the running process & redirect
-        obj.run_bg()
+        obj.spawn()
         try: messages.add_message(self.request, messages.INFO, "Bitflip Analyzer spawned; refresh to update progress")
         except NameError: pass
         return '/analysis/'
@@ -281,7 +283,7 @@ class ChallengePairAnalyzerRun(generic.RedirectView):
             except NameError: pass
             return '/analysis/'
         # if needed, spawn the running process & redirect
-        obj.run_bg()
+        obj.spawn()
         try: messages.add_message(self.request, messages.INFO, "ChallengePairAnalyzer spawned; refresh to update progress")
         except NameError: pass
         return '/analysis/'
