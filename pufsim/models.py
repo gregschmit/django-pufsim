@@ -6,6 +6,24 @@ import subprocess
 import sys
 
 
+def find_in_path(filename):
+    """
+    Resolve filename to full path; needed for Apache.
+    """
+    try:
+        ospath = os.environ['PATH']
+        ospath = ospath.split(os.pathsep)
+    except KeyError:
+        ospath = []
+    for p in list(sys.path) + ospath + ['/usr/local/bin']:
+        try:
+            for f in os.listdir(p):
+                if filename == f: return os.path.join(p, f)
+        except FileNotFoundError:
+            pass
+    return None
+
+
 class ModelJobRunner(models.Model):
 
     class Meta:
@@ -30,10 +48,15 @@ class ModelJobRunner(models.Model):
     def spawn(self):
         obj = type(self).objects.select_for_update().get(id=self.id)
         args = ['run_analyzer', type(self).__name__, str(self.id)]
-        cmd1 = ' '.join(['python3', 'manage.py'] + args)
+        py3 = find_in_path('python3')
+        if not py3: py3 = 'python3'
+        manage = find_in_path('manage.py')
+        if not manage: manage = 'manage.py'
+        cmd1 = ' '.join([py3, manage, *args])
+        #cmd1 = ['/usr/bin/env', 'python3', '/server/apps/pufsim_project/manage.py'] + args)
         cmd2 = ' '.join(['python', 'manage.py'] + args)
-        try: p = subprocess.Popen(cmd1, shell=True)
-        except: p = subprocess.Popen(cmd2, shell=True)
+        p = subprocess.Popen(cmd1, shell=True)
+        #except: p = subprocess.Popen(cmd2, shell=True)
         obj.pid = p.pid
         obj.save()
         return p
