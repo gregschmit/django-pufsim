@@ -26,18 +26,16 @@ class ModelJobRunner(models.Model):
             self.pid = 0
             self.save()
 
-    #@transaction.atomic
+    @transaction.atomic
     def spawn(self):
-        obj = type(self).objects.get(id=self.id)
+        obj = type(self).objects.select_for_update().get(id=self.id)
         args = ['run_analyzer', type(self).__name__, str(self.id)]
-        #cmd = ['/usr/local/bin/python3', '/server/apps/pufsim_project/manage.py'] + args
-        cmd = ['python3', 'manage.py'] + args
-        print(' '.join(cmd))
-        p = subprocess.Popen(cmd, shell=True)
-        p.communicate()
-        #p = subprocess.Popen(['python', 'manage.py', *cmd], shell=True)
-        #obj.pid = p.pid
-        #obj.save()
+        cmd1 = ' '.join(['python3', 'manage.py'] + args)
+        cmd2 = ' '.join(['python', 'manage.py'] + args)
+        try: p = subprocess.Popen(cmd1, shell=True)
+        except: p = subprocess.Popen(cmd2, shell=True)
+        obj.pid = p.pid
+        obj.save()
         return p
 
 
