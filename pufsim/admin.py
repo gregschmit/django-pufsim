@@ -22,5 +22,17 @@ class PUFGeneratorAdmin(admin.ModelAdmin):
     )
 
 
+class NeighborPredictorAdmin(admin.ModelAdmin):
+    list_filter = ()
+    list_display = ('id',) + list_filter + ('distance', 'group', 'match_range', 'known_set_limit', 'number_of_pufs')
+    search_fields = list_display
+
+    fieldsets = (
+        ('General', {'fields': ('distance', 'group', 'match_range', 'known_set_limit', 'number_of_pufs', 'data',)}),
+    )
+    readonly_fields = ('data',)
+
+
 admin.site.register(models.PDF, PDFAdmin)
 admin.site.register(models.PUFGenerator, PUFGeneratorAdmin)
+admin.site.register(models.NeighborPredictor, NeighborPredictorAdmin)

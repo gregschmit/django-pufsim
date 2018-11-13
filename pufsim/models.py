@@ -19,15 +19,27 @@ def find_in_path(filename):
         try:
             for f in os.listdir(p):
                 if filename == f: return os.path.join(p, f)
-        except FileNotFoundError:
+        except (FileNotFoundError, NotADirectoryError):
             pass
     return None
 
 
-class ModelJobRunner(models.Model):
+class ModelAnalyzer(models.Model):
+    progress = models.IntegerField(default=0, editable=False)
+    data = models.TextField(blank=True, editable=False)
+    pid = models.IntegerField(default=0, editable=False)
 
     class Meta:
         abstract = True
+
+    def get_actions(self):
+        """
+        Return a list of tuples of possible actions.
+        """
+        a = []
+        if not self.pid: a.append('run')
+        if self.data and not self.pid: a.append('show')
+        return a
 
     @classmethod
     def check_pids(cls):
@@ -49,14 +61,15 @@ class ModelJobRunner(models.Model):
         obj = type(self).objects.select_for_update().get(id=self.id)
         args = ['run_analyzer', type(self).__name__, str(self.id)]
         py3 = find_in_path('python3')
+        py = find_in_path('python')
         if not py3: py3 = 'python3'
+        if not py: py = 'python'
         manage = find_in_path('manage.py')
         if not manage: manage = 'manage.py'
         cmd1 = ' '.join([py3, manage, *args])
-        #cmd1 = ['/usr/bin/env', 'python3', '/server/apps/pufsim_project/manage.py'] + args)
-        cmd2 = ' '.join(['python', 'manage.py'] + args)
-        p = subprocess.Popen(cmd1, shell=True)
-        #except: p = subprocess.Popen(cmd2, shell=True)
+        cmd2 = ' '.join([py, manage, *args])
+        try: p = subprocess.Popen(cmd1, shell=True)
+        except: p = subprocess.Popen(cmd2, shell=True)
         obj.pid = p.pid
         obj.save()
         return p
@@ -159,7 +172,7 @@ class PUFGenerator(models.Model):
         return None
 
 
-class BitflipAnalyzer(ModelJobRunner):
+class BitflipAnalyzer(ModelAnalyzer):
     """
     Build many PUFs and test challenges with bitflips to examine how often the
     response changes.
@@ -167,22 +180,9 @@ class BitflipAnalyzer(ModelJobRunner):
     puf_generator = models.ForeignKey(PUFGenerator, on_delete=models.CASCADE)
     base_challenge = models.IntegerField(default=0, help_text="Enter the challenge as a decimal value and the system will truncate or add zeros to the most significant bit side (e.g., 12 will be converted to 1100 and then padded to 001100 if the PUF has 6 stages)")
     number_of_pufs = models.IntegerField(default=100)
-    progress = models.IntegerField(default=0, editable=False)
-    data = models.TextField(blank=True, editable=False)
-    pid = models.IntegerField(default=0, editable=False)
     
     def __str__(self):
         return "BitflipAnalyzer[{0}, base_challenge={1}, n_pufs={2}]".format(self.puf_generator, self.base_challenge, self.number_of_pufs)
-
-    def get_actions(self):
-        """
-        Return a list of tuples of possible actions.
-        """
-        a = []
-        if not self.pid: a.append('run')
-        if self.data and not self.pid: a.append('show')
-        return a
-
 
     def run(self):
         """
@@ -206,7 +206,7 @@ class BitflipAnalyzer(ModelJobRunner):
         return data
 
 
-class ChallengePairAnalyzer(ModelJobRunner):
+class ChallengePairAnalyzer(ModelAnalyzer):
     """
     Build many PUFs and test two challenges and how they affect the outcome..
     """
@@ -214,22 +214,9 @@ class ChallengePairAnalyzer(ModelJobRunner):
     base_challenge = models.IntegerField(default=0, help_text="Enter the challenge as a decimal value and the system will truncate or add zeros to the most significant bit side (e.g., 12 will be converted to 1100 and then padded to 001100 if the PUF has 6 stages)")
     test_challenge = models.IntegerField(default=0, help_text="Enter the challenge as a decimal value and the system will truncate or add zeros to the most significant bit side (e.g., 12 will be converted to 1100 and then padded to 001100 if the PUF has 6 stages)")
     number_of_pufs = models.IntegerField(default=100)
-    progress = models.IntegerField(default=0, editable=False)
-    data = models.TextField(blank=True, editable=False)
-    pid = models.IntegerField(default=0, editable=False)
     
     def __str__(self):
         return "ChallengePairAnalyzer[{0}, base_challenge={1}, test_challenge={2}, n_pufs={3}]".format(self.puf_generator, self.base_challenge, self.test_challenge, self.number_of_pufs)
-
-    def get_actions(self):
-        """
-        Return a list of tuples of possible actions.
-        """
-        a = []
-        if not self.pid: a.append('run')
-        if self.data and not self.pid: a.append('show')
-        return a
-
 
     def run(self):
         """
@@ -245,6 +232,70 @@ class ChallengePairAnalyzer(ModelJobRunner):
             t1 = p.run(c)
             t2 = p.run(c_prime)
             if t1 != t2: data += 1
+        self.progress = 100
+        self.data = data
+        self.save()
+        return data
+
+
+class NeighborPredictor(ModelAnalyzer):
+    """
+    Sample PUF `n` times and then find close neighbors to predict.
+    """
+    puf_generator = models.ForeignKey(PUFGenerator, on_delete=models.CASCADE)
+    distance_choices = [
+        ('triangle', 'triangle'),
+        ('beta', 'beta (triangle/2)'),
+        ('hamming', 'hamming'),
+    ]
+    distance = models.TextField(max_length=30, choices=distance_choices)
+    group = models.BooleanField(default=True, help_text="Whether we choose a single closest neighbor or a group of closest neighbors.")
+    match_range = models.IntegerField(default=0, help_text="The range of acceptable deviation.")
+    known_set_limit = models.IntegerField(default=2, help_text="The predictor will iterate over `n` from 1 to `known_set_limit`, where `n` is the known set size that we use to predict the next challenge.")
+    number_of_pufs = models.IntegerField(default=100)
+    
+    def __str__(self):
+        return "NeighborPredictor[{0}, known_set_limit={1}, n_pufs={2}]".format(self.puf_generator, self.known_set_limit, self.number_of_pufs)
+
+    def run(self):
+        """
+        Build pufs, process them while updating progress, return data.
+        """
+        data = [0 for x in range(self.known_set_limit+1)]
+        for i in range(self.number_of_pufs):
+            self.progress = int(i*100 / self.number_of_pufs)
+            self.save()
+            p = self.puf_generator.generate_puf()
+            for j in range(1, self.known_set_limit+1):
+                # randomly generate j crps
+                crps = p.generate_random_crps(j)
+                # randomly generate challenge
+                ch = pl.generate_random_challenges(1, self.puf_generator.stages)[0]
+                # find crps with the same beta value and average them
+                if self.distance == 'triangle':
+                    ch_group = pl.beta(ch)
+                elif self.distance == 'beta':
+                    ch_group = pl.tri(ch)
+                match_total = 0
+                match_sum = 0
+                for (c, r) in crps:
+                    if self.distance == 'triangle':
+                        tmp = abs(pl.tri(c) - ch_group)
+                    elif self.distance == 'beta':
+                        tmp = abs(pl.beta(c) - ch_group)
+                    else:
+                        tmp = pl.hamming(c, ch)
+                    if tmp <= self.match_range:
+                        match_total += 1
+                        match_sum += int(r)
+                        if not self.group: break
+                # average them and round
+                try:
+                    prediction = round(match_sum / match_total)
+                except ZeroDivisionError:
+                    prediction = 0
+                # add to histogram if we successfully predicted the result
+                if prediction == p.run(ch): data[i] += 1
         self.progress = 100
         self.data = data
         self.save()

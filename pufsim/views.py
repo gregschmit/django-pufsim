@@ -60,10 +60,13 @@ class Analysis(generic.TemplateView):
         context = super().get_context_data(**kwargs)
         models.BitflipAnalyzer.check_pids()
         models.ChallengePairAnalyzer.check_pids()
+        models.NeighborPredictor.check_pids()
         context['bitflip_analyzers'] = models.BitflipAnalyzer.objects.all()
         context['bitflip_analyzers_fields'] = ['id', 'puf_generator', 'base_challenge', 'number_of_pufs', 'progress', 'pid']
         context['challenge_pair_analyzers'] = models.ChallengePairAnalyzer.objects.all()
         context['challenge_pair_analyzers_fields'] = ['id', 'puf_generator', 'base_challenge', 'test_challenge', 'number_of_pufs', 'progress', 'pid']
+        context['neighbor_predictors'] = models.NeighborPredictor.objects.all()
+        context['neighbor_predictors_fields'] = ['id', 'puf_generator', 'distance', 'group', 'match_range', 'known_set_limit', 'number_of_pufs', 'progress', 'pid']
         return context
 
 
@@ -285,6 +288,62 @@ class ChallengePairAnalyzerRun(generic.RedirectView):
         # if needed, spawn the running process & redirect
         obj.spawn()
         try: messages.add_message(self.request, messages.INFO, "ChallengePairAnalyzer spawned; refresh to update progress")
+        except NameError: pass
+        return '/analysis/'
+
+
+# Neighbor Predictor
+
+class NeighborPredictorMixin:
+    model = models.NeighborPredictor
+    fields = ['puf_generator', 'distance', 'group', 'match_range', 'known_set_limit']
+    label = 'Neighbor Predictor'
+
+
+class NeighborPredictorCreate(CRUDMixin, AnalysisMixin, NeighborPredictorMixin, generic.CreateView):
+    form_header = 'Create Neighbor Predictor'
+
+
+class NeighborPredictorShow(generic.TemplateView):
+    model = models.NeighborPredictor
+    template_name = 'pufsim/data_result.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        obj = self.model.objects.get(pk=self.kwargs.get('pk'))
+        data = eval(obj.data.encode())
+        if obj.pid:
+            context['header'] = 'Neighbor Predictor'
+            context['text'] = "Data not ready"
+        else:
+            context['header'] = 'Neighbor Predictor'
+            context['title'] = str(obj)
+            context['src'] = graph_histogram(data, top=obj.number_of_pufs)
+            context['data'] = data
+        return context
+
+class NeighborPredictorUpdate(CRUDMixin, AnalysisMixin, NeighborPredictorMixin, generic.UpdateView):
+    form_header = 'Edit Neighbor Predictor'
+
+
+class NeighborPredictorDelete(CRUDMixin, AnalysisMixin, NeighborPredictorMixin, generic.DeleteView):
+    form_message = "Are you sure you want to delete NeighborPredictor {obj}?"
+    form_submit = 'Delete'
+
+
+class NeighborPredictorRun(generic.RedirectView):
+    model = models.NeighborPredictor
+
+    def get_redirect_url(self, *args, **kwargs):
+        obj = self.model.objects.get(pk=self.kwargs.get('pk'))
+        # if already running, throw notice
+        if obj.pid:
+            try: messages.add_message(self.request, messages.WARNING, "NeighborPredictorAnalyzer already running")
+            except NameError: pass
+            return '/analysis/'
+        # if needed, spawn the running process & redirect
+        obj.spawn()
+        try: messages.add_message(self.request, messages.INFO, "NeighborPredictor spawned; refresh to update progress")
         except NameError: pass
         return '/analysis/'
 
