@@ -1,7 +1,7 @@
 from django import template
-from pufsim import _version
+from pufsim import version
 register = template.Library()
 
 @register.simple_tag
 def get_version():
-    return _version.get_version()
+    return version.get_version()

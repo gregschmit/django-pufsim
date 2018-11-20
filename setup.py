@@ -1,6 +1,6 @@
 import os
 from setuptools import find_packages, setup
-import _version
+from pufsum import version
 
 
 # allow setup.py to be run from any path
@@ -9,12 +9,12 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 with open('README.rst') as readme:
     README = readme.read()
 
-_version.stamp_directory('./pufsim')
+version.stamp_directory('./pufsim')
 
 setup(
     name='django-pufsim',
-    version=_version.get_version(),
-    packages=find_packages(),
+    version=version.get_version(),
+    packages=['pufsim'],
     include_package_data=True,
     license='BSD License',
     description='Front-end app for puflib',
