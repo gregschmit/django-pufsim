@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# version.sh: gets a PEP440-compliant version
+# version.sh: gets a PEP440-compliant version for git
 
 # add useful places to PATH if they aren't there
 PATH=$PATH:/usr/local/bin:/usr/bin:/bin
