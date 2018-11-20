@@ -13,5 +13,3 @@ def get_version():
     if 'fatal' in ver or '\n' in ver:
         return '0'
     return ver
-
-__version__ = get_version()

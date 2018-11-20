@@ -24,6 +24,7 @@ setup(
     author_email='schmitgreg@gmail.com',
     install_requires=['numpy', 'matplotlib', 'puflib',],
     dependency_links=['https://github.com/gregschmit/puflib/tarball/master#egg=puflib-0.1'],
+    package_data={'pufsim': ['VERSION_STAMP']},
     classifiers=[
         'Environment :: Web Environment',
         'Framework :: Django',
