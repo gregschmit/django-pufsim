@@ -1,6 +1,6 @@
 import os
 from setuptools import find_packages, setup
-from pufsum import version
+from pufsim import version
 
 
 # allow setup.py to be run from any path
@@ -9,7 +9,7 @@ os.chdir(os.path.normpath(os.path.join(os.path.abspath(__file__), os.pardir)))
 with open('README.rst') as readme:
     README = readme.read()
 
-version.stamp_directory('./pufsim')
+version.stamp_directory(os.path.join(os.getcwd(), 'pufsim'))
 
 setup(
     name='django-pufsim',
