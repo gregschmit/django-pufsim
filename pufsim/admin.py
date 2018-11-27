@@ -24,11 +24,11 @@ class PUFGeneratorAdmin(admin.ModelAdmin):
 
 class NeighborPredictorAdmin(admin.ModelAdmin):
     list_filter = ()
-    list_display = ('id',) + list_filter + ('distance', 'group', 'match_range', 'known_set_limit', 'number_of_pufs')
+    list_display = ('id',) + list_filter + ('k', 'known_set_limit', 'number_of_pufs')
     search_fields = list_display
 
     fieldsets = (
-        ('General', {'fields': ('distance', 'group', 'match_range', 'known_set_limit', 'number_of_pufs', 'data',)}),
+        ('General', {'fields': ('k', 'known_set_limit', 'number_of_pufs', 'data',)}),
     )
     readonly_fields = ('data',)
 

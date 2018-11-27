@@ -248,14 +248,13 @@ class NeighborPredictor(ModelAnalyzer):
         ('beta', 'beta (triangle/2)'),
         ('hamming', 'hamming'),
     ]
+    k = models.IntegerField(default=1)
     distance = models.TextField(max_length=30, choices=distance_choices)
-    group = models.BooleanField(default=True, help_text="Whether we choose a single closest neighbor or a group of closest neighbors.")
-    match_range = models.IntegerField(default=0, help_text="The range of acceptable deviation.")
-    known_set_limit = models.IntegerField(default=2, help_text="The predictor will iterate over `n` from 1 to `known_set_limit`, where `n` is the known set size that we use to predict the next challenge.")
+    known_set_limit = models.IntegerField(default=2, help_text="The predictor will iterate over `n` from `k` to `known_set_limit`, where `n` is the known set size that we use to predict the next challenge.")
     number_of_pufs = models.IntegerField(default=100)
     
     def __str__(self):
-        return "NeighborPredictor[{0}, known_set_limit={1}, n_pufs={2}]".format(self.puf_generator, self.known_set_limit, self.number_of_pufs)
+        return "NeighborPredictor[{0}, k={1}, known_set_limit={2}, n_pufs={3}]".format(self.puf_generator, self.k, self.known_set_limit, self.number_of_pufs)
 
     def run(self):
         """
@@ -271,24 +270,21 @@ class NeighborPredictor(ModelAnalyzer):
                 crps = p.generate_random_crps(j)
                 # randomly generate challenge
                 ch = pl.generate_random_challenges(1, self.puf_generator.stages)[0]
-                # find crps with the same beta value and average them
-                if self.distance == 'triangle':
-                    ch_group = pl.beta(ch)
-                elif self.distance == 'beta':
-                    ch_group = pl.tri(ch)
-                match_total = 0
-                match_sum = 0
+                # find k closest crps and average them
+                ordered = [] # tuples of (distance, c, r)
                 for (c, r) in crps:
                     if self.distance == 'triangle':
-                        tmp = abs(pl.tri(c) - ch_group)
+                        ordered.append((pl.tri(c, ch), c, r))
                     elif self.distance == 'beta':
-                        tmp = abs(pl.beta(c) - ch_group)
+                        ordered.append((pl.beta(c, ch), c, r))
                     else:
-                        tmp = pl.hamming(c, ch)
-                    if tmp <= self.match_range:
-                        match_total += 1
-                        match_sum += int(r)
-                        if not self.group: break
+                        ordered.append((pl.hamming(c, ch), c, r))
+                ordered.sort(key=lambda tup: tup[0], reverse=True)
+                match_total = 0
+                match_sum = 0
+                for n in range(self.k):
+                    match_total += 1
+                    match_sum += ordered[n][2]
                 # average them and round
                 try:
                     prediction = round(match_sum / match_total)
