@@ -284,7 +284,6 @@ class NeighborPredictor(ModelAnalyzer):
                 match_sum = 0
                 for n in range(self.k):
                     match_total += 1
-                    print(ordered[n][2])
                     match_sum += int(ordered[n][2])
                 # average them and round
                 try:
@@ -292,7 +291,7 @@ class NeighborPredictor(ModelAnalyzer):
                 except ZeroDivisionError:
                     prediction = 0
                 # add to histogram if we successfully predicted the result
-                if prediction == p.run(ch): data[i] += 1
+                if prediction == int(p.run(ch)): data[i] += 1
         self.progress = 100
         self.data = data
         self.save()

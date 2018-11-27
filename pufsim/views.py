@@ -66,7 +66,7 @@ class Analysis(generic.TemplateView):
         context['challenge_pair_analyzers'] = models.ChallengePairAnalyzer.objects.all()
         context['challenge_pair_analyzers_fields'] = ['id', 'puf_generator', 'base_challenge', 'test_challenge', 'number_of_pufs', 'progress', 'pid']
         context['neighbor_predictors'] = models.NeighborPredictor.objects.all()
-        context['neighbor_predictors_fields'] = ['id', 'puf_generator', 'k', 'known_set_limit', 'number_of_pufs', 'progress', 'pid']
+        context['neighbor_predictors_fields'] = ['id', 'puf_generator', 'k', 'distance', 'known_set_limit', 'number_of_pufs', 'progress', 'pid']
         return context
 
 
@@ -296,7 +296,7 @@ class ChallengePairAnalyzerRun(generic.RedirectView):
 
 class NeighborPredictorMixin:
     model = models.NeighborPredictor
-    fields = ['puf_generator', 'distance', 'group', 'match_range', 'known_set_limit']
+    fields = ['puf_generator', 'k', 'distance', 'known_set_limit', 'number_of_pufs']
     label = 'Neighbor Predictor'
 
 
