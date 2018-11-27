@@ -284,7 +284,8 @@ class NeighborPredictor(ModelAnalyzer):
                 match_sum = 0
                 for n in range(self.k):
                     match_total += 1
-                    match_sum += ordered[n][2]
+                    print(ordered[n][2])
+                    match_sum += int(ordered[n][2])
                 # average them and round
                 try:
                     prediction = round(match_sum / match_total)
