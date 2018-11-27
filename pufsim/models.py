@@ -291,7 +291,7 @@ class NeighborPredictor(ModelAnalyzer):
                 except ZeroDivisionError:
                     prediction = 0
                 # add to histogram if we successfully predicted the result
-                if prediction == int(p.run(ch)): data[i] += 1
+                if prediction == int(p.run(ch)): data[j] += 1
         self.progress = 100
         self.data = data
         self.save()
