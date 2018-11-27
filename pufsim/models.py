@@ -244,12 +244,11 @@ class NeighborPredictor(ModelAnalyzer):
     """
     puf_generator = models.ForeignKey(PUFGenerator, on_delete=models.CASCADE)
     distance_choices = [
-        ('triangle', 'triangle'),
-        ('beta', 'beta (triangle/2)'),
+        ('gamma', 'gamma'),
         ('hamming', 'hamming'),
     ]
     k = models.IntegerField(default=1)
-    distance = models.TextField(max_length=30, choices=distance_choices)
+    distance = models.TextField(default='gamma', max_length=30, choices=distance_choices)
     known_set_limit = models.IntegerField(default=2, help_text="The predictor will iterate over `n` from `k` to `known_set_limit`, where `n` is the known set size that we use to predict the next challenge.")
     number_of_pufs = models.IntegerField(default=100)
     
@@ -273,18 +272,19 @@ class NeighborPredictor(ModelAnalyzer):
                 # find k closest crps and average them
                 ordered = [] # tuples of (distance, c, r)
                 for (c, r) in crps:
-                    if self.distance == 'triangle':
-                        ordered.append((pl.tri(c, ch), c, r))
-                    elif self.distance == 'beta':
-                        ordered.append((pl.beta(c, ch), c, r))
+                    if self.distance == 'gamma':
+                        ordered.append((pl.gamma(c, ch), c, r))
                     else:
                         ordered.append((pl.hamming(c, ch), c, r))
-                ordered.sort(key=lambda tup: tup[0], reverse=True)
+                ordered.sort(key=lambda tup: abs(tup[0]))
                 match_total = 0
                 match_sum = 0
                 for n in range(self.k):
                     match_total += 1
-                    match_sum += int(ordered[n][2])
+                    bet = int(ordered[n][2])
+                    if ordered[n][0] < 0:
+                        bet *= -1
+                    match_sum += bet
                 # average them and round
                 try:
                     prediction = round(match_sum / match_total)
