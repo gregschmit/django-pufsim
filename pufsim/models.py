@@ -259,12 +259,13 @@ class NeighborPredictor(ModelAnalyzer):
         """
         Build pufs, process them while updating progress, return data.
         """
-        data = [0 for x in range(self.known_set_limit+1)]
+        print("running pufsim")
+        data = [0 for x in range(self.k, self.known_set_limit+1)]
         for i in range(self.number_of_pufs):
             self.progress = int(i*100 / self.number_of_pufs)
             self.save()
             p = self.puf_generator.generate_puf()
-            for j in range(1, self.known_set_limit+1):
+            for j in range(self.k, self.known_set_limit+1):
                 # randomly generate j crps
                 crps = p.generate_random_crps(j)
                 # randomly generate challenge
@@ -276,7 +277,7 @@ class NeighborPredictor(ModelAnalyzer):
                         ordered.append((pl.gamma(c, ch), c, r))
                     else:
                         ordered.append((pl.hamming(c, ch), c, r))
-                ordered.sort(key=lambda tup: abs(tup[0]))
+                ordered.sort(key=lambda tup: abs(tup[0]), reverse=True)
                 match_total = 0
                 match_sum = 0
                 for n in range(self.k):
@@ -291,7 +292,8 @@ class NeighborPredictor(ModelAnalyzer):
                 except ZeroDivisionError:
                     prediction = 0
                 # add to histogram if we successfully predicted the result
-                if prediction == int(p.run(ch)): data[j] += 1
+                true = int(p.run(ch))
+                if prediction == true: data[j-self.k] += 1
         self.progress = 100
         self.data = data
         self.save()
