@@ -260,7 +260,7 @@ class NeighborPredictor(ModelAnalyzer):
         Build pufs, process them while updating progress, return data.
         """
         print("running pufsim")
-        data = [0 for x in range(self.k, self.known_set_limit+1)]
+        data = [0 for x in range(self.known_set_limit+1)]
         for i in range(self.number_of_pufs):
             self.progress = int(i*100 / self.number_of_pufs)
             self.save()
@@ -293,7 +293,7 @@ class NeighborPredictor(ModelAnalyzer):
                     prediction = 0
                 # add to histogram if we successfully predicted the result
                 true = int(p.run(ch))
-                if prediction == true: data[j-self.k] += 1
+                if prediction == true: data[j] += 1
         self.progress = 100
         self.data = data
         self.save()

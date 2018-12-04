@@ -11,11 +11,12 @@ import puflib as pl
 from . import models
 
 
-def graph_histogram(data, bins=None, top=1):
+def graph_histogram(data, bins=None, top=1, xstart=0):
     b = BytesIO()
     fig = plt.figure()
     plt.hist([x for x in range(len(data))], weights=data, bins=[x-0.5 for x in range(len(data)+1)], color='black', rwidth=0.5, ec='black')
     plt.ylim(0, top)
+    plt.xlim(xstart-1, len(data))
     plt.savefig(b, format='png')
     return 'data:image/png;base64, ' + b64encode(b.getvalue()).decode()
 
@@ -318,7 +319,7 @@ class NeighborPredictorShow(generic.TemplateView):
         else:
             context['header'] = 'Neighbor Predictor'
             context['title'] = str(obj)
-            context['src'] = graph_histogram(data, top=obj.number_of_pufs)
+            context['src'] = graph_histogram(data, top=obj.number_of_pufs, xstart=obj.k)
             context['data'] = data
         return context
 
