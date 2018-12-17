@@ -3,17 +3,15 @@
 CRUD frame displays a model and provides CRUD operations.
 
   Required Params:
-   - objects
-   - model_name
-   - model_uri
+   - model
 {% endcomment %}
 <div class="row">
   <div class="column small-8">
-    <h2>{{ model_name }}</h2>
+    <h2>{{ model|getmeta:'verbose_name_plural' }}</h2>
   </div>
   <div class="column small-4">
     <ul class="menu simple align-right">
-      <li><a href="/{{ model_uri }}/create"><i class="fi-plus pufsim-green"></i> <strong>Create</strong></a></li>
+      <li><a href="/{{ model.get_uri_name }}/create"><i class="fi-plus pufsim-green"></i> <strong>Create</strong></a></li>
     </ul>
   </div>
 </div>
@@ -21,8 +19,8 @@ CRUD frame displays a model and provides CRUD operations.
   <table>
     <thead>
       <tr>
-        {% for f in fields %}
-          <th>{{ f|default_if_none:'' }}</th>
+        {% for f in model.get_display_fields %}
+          <th>{{ f.verbose_name|default_if_none:'' }}</th>
         {% endfor %}
         <th></th>
       </tr>
@@ -30,16 +28,16 @@ CRUD frame displays a model and provides CRUD operations.
     <tbody>
       {% for o in objects %}
         <tr>
-          {% for f in fields %}
-            <td>{{ o|get_attr:f|default_if_none:'' }}</td>
+          {% for f in model.get_display_fields %}
+            <td>{{ o|get_attr:f.name|default_if_none:'' }}</td>
           {% endfor %}
           <td>
             <ul class="text-bold menu simple align-right">
               {% for action in o.get_actions %}
-                <li><a title="{{ action }}" href="/{{ model_uri }}/{{ o.id }}/{{ action }}"><strong>{{ action|title }}</strong></a></li>
+                <li><a title="{{ action }}" href="/{{ model.get_uri_name }}/{{ o.id }}/{{ action }}"><strong>{{ action|title }}</strong></a></li>
               {% endfor %}
-              <li><a title="update" href="/{{ model_uri }}/{{ o.id }}/update"><strong>Update</strong></a></li>
-              <li><a title="delete" href="/{{ model_uri }}/{{ o.id }}/delete"><strong>Delete</strong></a></li>
+              <li><a title="update" href="/{{ model.get_uri_name }}/{{ o.id }}/update"><strong>Update</strong></a></li>
+              <li><a title="delete" href="/{{ model.get_uri_name }}/{{ o.id }}/delete"><strong>Delete</strong></a></li>
             </ul>
           </td>
         </tr>

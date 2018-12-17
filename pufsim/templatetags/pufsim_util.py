@@ -1,6 +1,7 @@
 from django import template
 register = template.Library()
 
+
 @register.filter
 def get_attr(obj, param):
     """
@@ -8,10 +9,17 @@ def get_attr(obj, param):
     """
     return getattr(obj, param, None)
 
+
 @register.filter
 def split_by(value, sep):
     return value.split(sep)
 
+
 @register.filter
 def index(value, i):
     return value[i]
+
+
+@register.filter
+def getmeta(obj, attr):
+    return getattr(obj._meta, attr, None)

@@ -1,3 +1,4 @@
+from django.apps import apps
 from django.contrib import admin
 from django.urls import path
 from . import views
@@ -11,19 +12,14 @@ urlpatterns = [
     path('bitflip_analyzers/<int:pk>/run/', views.BitflipAnalyzerRun.as_view(), name='run_bitflip_analyzer'),
     path('challenge_pair_analyzers/<int:pk>/run/', views.ChallengePairAnalyzerRun.as_view(), name='run_challenge_pair_analyzer'),
     path('neighbor_predictors/<int:pk>/run/', views.NeighborPredictorRun.as_view(), name='run_neighbor_predictor'),
-    path('pufgs/<int:pk>/quicktest/', views.PUFGeneratorQuicktest.as_view(), name='quicktest_pufg'),
+    path('puf_generators/<int:pk>/quicktest/', views.PUFGeneratorQuicktest.as_view(), name='quicktest_pufg'),
 ]
 
 # CRUD helper
-cruds = [
-    ['pdfs', 'PDF'],
-    ['pufgs', 'PUFGenerator'],
-    ['bitflip_analyzers', 'BitflipAnalyzer'],
-    ['challenge_pair_analyzers', 'ChallengePairAnalyzer'],
-    ['neighbor_predictors', 'NeighborPredictor'],
-]
-for c in cruds:
-    urlpatterns.append(path(c[0] + '/create/', getattr(views, c[1] + 'Create').as_view(), name='create_' + c[0]))
-    urlpatterns.append(path(c[0] + '/<int:pk>/update/', getattr(views, c[1] + 'Update').as_view(), name='update_' + c[0]))
-    urlpatterns.append(path(c[0] + '/<int:pk>/delete/', getattr(views, c[1] + 'Delete').as_view(), name='delete_' + c[0]))
-    urlpatterns.append(path(c[0] + '/<int:pk>/show/', getattr(views, c[1] + 'Show').as_view(), name='show_' + c[0]))
+for m in apps.get_app_config('pufsim').get_models():
+    u = m.get_uri_name()
+    n = m.__name__
+    urlpatterns.append(path(u + '/create/', getattr(views, n + 'Create').as_view(), name='create_' + u))
+    urlpatterns.append(path(u + '/<int:pk>/update/', getattr(views, n + 'Update').as_view(), name='update_' + u))
+    urlpatterns.append(path(u + '/<int:pk>/delete/', getattr(views, n + 'Delete').as_view(), name='delete_' + u))
+    urlpatterns.append(path(u + '/<int:pk>/show/', getattr(views, n + 'Show').as_view(), name='show_' + u))

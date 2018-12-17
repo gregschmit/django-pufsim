@@ -24,6 +24,27 @@ def find_in_path(filename):
     return None
 
 
+class ModelEnv(models.Model):
+    class Meta:
+        abstract = True
+    
+    @classmethod
+    def get_display_fields(cls):
+        r = []
+        for f in cls._meta.get_fields():
+            if f.editable:
+                r.append(f)
+        return r
+
+    @classmethod
+    def get_edit_fields(cls):
+        return [x for x in cls.get_display_fields() if x.name != 'id']
+
+    @classmethod
+    def get_uri_name(cls):
+        return cls._meta.verbose_name_plural.lower().replace(' ', '_')
+
+
 class ModelAnalyzer(models.Model):
     progress = models.IntegerField(default=0, editable=False)
     data = models.TextField(blank=True, editable=False)
@@ -31,6 +52,26 @@ class ModelAnalyzer(models.Model):
 
     class Meta:
         abstract = True
+
+    @classmethod
+    def get_uri_name(cls):
+        return cls._meta.verbose_name_plural.lower().replace(' ', '_')
+
+    @classmethod
+    def get_display_fields(cls):
+        r = []
+        p = []
+        for f in cls._meta.get_fields():
+            if f.editable or f.name == 'pid' or f.name == 'progress':
+                if f.name == 'progress' or f.name == 'pid':
+                    p.append(f)
+                else:
+                    r.append(f)
+        return r + p
+
+    @classmethod
+    def get_edit_fields(cls):
+        return [x for x in cls.get_display_fields() if x.name not in ['id', 'pid', 'progress']]
 
     def get_actions(self):
         """
@@ -75,7 +116,7 @@ class ModelAnalyzer(models.Model):
         return p
 
 
-class PDF(models.Model):
+class PDF(ModelEnv):
     """
     Represents a probability distribution function; principle method is
     `get_rng` which will generate random numbers according to the PDF.
@@ -139,7 +180,7 @@ class PDF(models.Model):
         return None
 
 
-class PUFGenerator(models.Model):
+class PUFGenerator(ModelEnv):
     """
     Model for building delay-based PUFs.
     """
@@ -152,6 +193,9 @@ class PUFGenerator(models.Model):
     production_pdf = models.ForeignKey(PDF, on_delete=models.CASCADE)
     sample_pdf = models.ForeignKey(PDF, on_delete=models.CASCADE, related_name='sample_pdf_revacc')
     sensitivity = models.FloatField(default=0.0)
+
+    class Meta:
+        verbose_name = 'PUF Generator'
 
     def __str__(self):
         return "PUFGenerator-{0}[stages={1}, production_pdf={2}, sample_pdf={3}]".format(self.architecture, self.stages, self.production_pdf, self.sample_pdf)
@@ -180,7 +224,10 @@ class BitflipAnalyzer(ModelAnalyzer):
     puf_generator = models.ForeignKey(PUFGenerator, on_delete=models.CASCADE)
     base_challenge = models.IntegerField(default=0, help_text="Enter the challenge as a decimal value and the system will truncate or add zeros to the most significant bit side (e.g., 12 will be converted to 1100 and then padded to 001100 if the PUF has 6 stages)")
     number_of_pufs = models.IntegerField(default=100)
-    
+
+    class Meta:
+        verbose_name = 'Bitflip Analyzer'
+
     def __str__(self):
         return "BitflipAnalyzer[{0}, base_challenge={1}, n_pufs={2}]".format(self.puf_generator, self.base_challenge, self.number_of_pufs)
 
@@ -214,7 +261,10 @@ class ChallengePairAnalyzer(ModelAnalyzer):
     base_challenge = models.IntegerField(default=0, help_text="Enter the challenge as a decimal value and the system will truncate or add zeros to the most significant bit side (e.g., 12 will be converted to 1100 and then padded to 001100 if the PUF has 6 stages)")
     test_challenge = models.IntegerField(default=0, help_text="Enter the challenge as a decimal value and the system will truncate or add zeros to the most significant bit side (e.g., 12 will be converted to 1100 and then padded to 001100 if the PUF has 6 stages)")
     number_of_pufs = models.IntegerField(default=100)
-    
+
+    class Meta:
+        verbose_name = 'Challenge Pair Analyzer'
+
     def __str__(self):
         return "ChallengePairAnalyzer[{0}, base_challenge={1}, test_challenge={2}, n_pufs={3}]".format(self.puf_generator, self.base_challenge, self.test_challenge, self.number_of_pufs)
 
@@ -251,6 +301,9 @@ class NeighborPredictor(ModelAnalyzer):
     distance = models.TextField(default='gamma', max_length=30, choices=distance_choices)
     known_set_limit = models.IntegerField(default=2, help_text="The predictor will iterate over `n` from `k` to `known_set_limit`, where `n` is the known set size that we use to predict the next challenge.")
     number_of_pufs = models.IntegerField(default=100)
+
+    class Meta:
+        verbose_name = 'Neighbor Predictor'
     
     def __str__(self):
         return "NeighborPredictor[{0}, k={1}, known_set_limit={2}, n_pufs={3}]".format(self.puf_generator, self.k, self.known_set_limit, self.number_of_pufs)
@@ -259,7 +312,6 @@ class NeighborPredictor(ModelAnalyzer):
         """
         Build pufs, process them while updating progress, return data.
         """
-        print("running pufsim")
         data = [0 for x in range(self.known_set_limit+1)]
         for i in range(self.number_of_pufs):
             self.progress = int(i*100 / self.number_of_pufs)

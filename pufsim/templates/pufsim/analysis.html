@@ -3,7 +3,7 @@
 {% block main %}
 <h1>Analysis</h1>
 <hr>
-{% include 'pufsim/_crud_frame.html' with objects=bitflip_analyzers model_name='Bitflip Analyzers' model_uri='bitflip_analyzers' fields=bitflip_analyzers_fields %}
-{% include 'pufsim/_crud_frame.html' with objects=challenge_pair_analyzers model_name='Challenge Pair Analyzers' model_uri='challenge_pair_analyzers' fields=challenge_pair_analyzers_fields %}
-{% include 'pufsim/_crud_frame.html' with objects=neighbor_predictors model_name='Neighbor Predictors' model_uri='neighbor_predictors' fields=neighbor_predictors_fields %}
+{% include 'pufsim/_crud_frame.html' with model=bitflip_analyzer objects=bitflip_analyzers %}
+{% include 'pufsim/_crud_frame.html' with model=challenge_pair_analyzer objects=challenge_pair_analyzers %}
+{% include 'pufsim/_crud_frame.html' with model=neighbor_predictor objects=neighbor_predictors %}
 {% endblock %}

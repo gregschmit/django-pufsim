@@ -44,10 +44,10 @@ class Environment(generic.TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context['pdf'] = models.PDF
         context['pdfs'] = models.PDF.objects.all()
-        context['pdfs_fields'] = ['id', 'distribution', 'mean', 'sigma', 'lbound', 'rbound',]
-        context['pufgs'] = models.PUFGenerator.objects.all()
-        context['pufgs_fields'] = ['id', 'architecture', 'stages', 'production_pdf', 'sample_pdf', 'sensitivity',]
+        context['puf_generator'] = models.PUFGenerator
+        context['puf_generators'] = models.PUFGenerator.objects.all()
         return context
 
 
@@ -62,12 +62,12 @@ class Analysis(generic.TemplateView):
         models.BitflipAnalyzer.check_pids()
         models.ChallengePairAnalyzer.check_pids()
         models.NeighborPredictor.check_pids()
+        context['bitflip_analyzer'] = models.BitflipAnalyzer
         context['bitflip_analyzers'] = models.BitflipAnalyzer.objects.all()
-        context['bitflip_analyzers_fields'] = ['id', 'puf_generator', 'base_challenge', 'number_of_pufs', 'progress', 'pid']
+        context['challenge_pair_analyzer'] = models.ChallengePairAnalyzer
         context['challenge_pair_analyzers'] = models.ChallengePairAnalyzer.objects.all()
-        context['challenge_pair_analyzers_fields'] = ['id', 'puf_generator', 'base_challenge', 'test_challenge', 'number_of_pufs', 'progress', 'pid']
+        context['neighbor_predictor'] = models.NeighborPredictor
         context['neighbor_predictors'] = models.NeighborPredictor.objects.all()
-        context['neighbor_predictors_fields'] = ['id', 'puf_generator', 'k', 'distance', 'known_set_limit', 'number_of_pufs', 'progress', 'pid']
         return context
 
 
@@ -96,9 +96,27 @@ class CRUDMixin:
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['form_header'] = getattr(self, 'form_header', '')
-        context['form_message'] = getattr(self, 'form_message', '').format(obj=getattr(getattr(self, 'object', None), 'id', None))
-        context['form_submit'] = getattr(self, 'form_submit', 'Submit')
+        # determine if CreateView, DetailsView, UpdateView, or DeleteView
+        name = self.model._meta.verbose_name
+        if generic.CreateView in type(self).__bases__:
+            form_header = "Create {0}".format(name)
+            form_message = ''
+            form_submit = 'Create'
+        elif generic.UpdateView in type(self).__bases__:
+            form_header = "Update {0}".format(name)
+            form_message = ''
+            form_submit = 'Update'
+        elif generic.DetailView in type(self).__bases__:
+            form_header = "Show {0}".format(name)
+            form_message = ''
+            form_submit = ''
+        else:
+            form_header = "Delete {0}".format(name)
+            form_message = "Are you sure you want to delete {0} {1}?".format(name, getattr(getattr(self, 'object', None), 'id', None))
+            form_submit = 'Delete'
+        context['form_header'] = form_header
+        context['form_message'] = form_message
+        context['form_submit'] = form_submit
         return context
 
 
@@ -116,49 +134,24 @@ class AnalysisMixin:
 
 class PDFMixin:
     model = models.PDF
-    fields = ['distribution', 'mean', 'sigma', 'lbound', 'rbound',]
+    fields = [x.name for x in model.get_edit_fields()]
 
-
-class PDFCreate(CRUDMixin, EnvironmentMixin, PDFMixin, generic.CreateView):
-    form_header = 'Create PDF'
-
-
-class PDFShow(CRUDMixin, EnvironmentMixin, PDFMixin, generic.DetailView):
-    form_header = 'Show PDF'
-
-
-class PDFUpdate(CRUDMixin, EnvironmentMixin, PDFMixin, generic.UpdateView):
-    form_header = 'Edit PDF'
-
-
-class PDFDelete(CRUDMixin, EnvironmentMixin, PDFMixin, generic.DeleteView):
-    form_message = "Are you sure you want to delete PDF {obj}?"
-    form_submit = 'Delete'
+class PDFCreate(CRUDMixin, EnvironmentMixin, PDFMixin, generic.CreateView): pass
+class PDFShow(CRUDMixin, EnvironmentMixin, PDFMixin, generic.DetailView): pass
+class PDFUpdate(CRUDMixin, EnvironmentMixin, PDFMixin, generic.UpdateView): pass
+class PDFDelete(CRUDMixin, EnvironmentMixin, PDFMixin, generic.DeleteView): pass
 
 
 # PUFGenerator
 
 class PUFGeneratorMixin:
     model = models.PUFGenerator
-    fields = ['architecture', 'stages', 'production_pdf', 'sample_pdf', 'sensitivity']
+    fields = [x.name for x in model.get_edit_fields()]
 
-
-class PUFGeneratorCreate(CRUDMixin, EnvironmentMixin, PUFGeneratorMixin, generic.CreateView):
-    form_header = 'Create PUF Generator'
-
-
-class PUFGeneratorShow(CRUDMixin, EnvironmentMixin, PUFGeneratorMixin, generic.DetailView):
-    form_header = 'Show PUF Generator'
-
-
-class PUFGeneratorUpdate(CRUDMixin, EnvironmentMixin, PUFGeneratorMixin, generic.UpdateView):
-    form_header = 'Edit PUF Generator'
-
-
-class PUFGeneratorDelete(CRUDMixin, EnvironmentMixin, PUFGeneratorMixin, generic.DeleteView):
-    form_message = "Are you sure you want to delete PUF Generator {obj}?"
-    form_submit = 'Delete'
-
+class PUFGeneratorCreate(CRUDMixin, EnvironmentMixin, PUFGeneratorMixin, generic.CreateView): pass
+class PUFGeneratorShow(CRUDMixin, EnvironmentMixin, PUFGeneratorMixin, generic.DetailView): pass
+class PUFGeneratorUpdate(CRUDMixin, EnvironmentMixin, PUFGeneratorMixin, generic.UpdateView): pass
+class PUFGeneratorDelete(CRUDMixin, EnvironmentMixin, PUFGeneratorMixin, generic.DeleteView): pass
 
 class PUFGeneratorQuicktest(generic.RedirectView):
 
@@ -185,16 +178,11 @@ class PUFGeneratorQuicktest(generic.RedirectView):
 
 class BitflipAnalyzerMixin:
     model = models.BitflipAnalyzer
-    fields = ['puf_generator', 'base_challenge', 'number_of_pufs']
-    label = 'Bitflip Analyzer'
+    fields = [x.name for x in model.get_edit_fields()]
 
+class BitflipAnalyzerCreate(CRUDMixin, AnalysisMixin, BitflipAnalyzerMixin, generic.CreateView): pass
 
-class BitflipAnalyzerCreate(CRUDMixin, AnalysisMixin, BitflipAnalyzerMixin, generic.CreateView):
-    form_header = 'Create Bitflip Analyzer'
-
-
-class BitflipAnalyzerShow(generic.TemplateView):
-    model = models.BitflipAnalyzer
+class BitflipAnalyzerShow(BitflipAnalyzerMixin, generic.TemplateView):
     template_name = 'pufsim/data_result.html'
 
     def get_context_data(self, **kwargs):
@@ -211,15 +199,8 @@ class BitflipAnalyzerShow(generic.TemplateView):
             context['data'] = data
         return context
 
-
-class BitflipAnalyzerUpdate(CRUDMixin, AnalysisMixin, BitflipAnalyzerMixin, generic.UpdateView):
-    form_header = 'Edit Bitflip Analyzer'
-
-
-class BitflipAnalyzerDelete(CRUDMixin, AnalysisMixin, BitflipAnalyzerMixin, generic.DeleteView):
-    form_message = "Are you sure you want to delete BitflipAnalyzer {obj}?"
-    form_submit = 'Delete'
-
+class BitflipAnalyzerUpdate(CRUDMixin, AnalysisMixin, BitflipAnalyzerMixin, generic.UpdateView): pass
+class BitflipAnalyzerDelete(CRUDMixin, AnalysisMixin, BitflipAnalyzerMixin, generic.DeleteView): pass
 
 class BitflipAnalyzerRun(generic.RedirectView):
     model = models.BitflipAnalyzer
@@ -242,15 +223,11 @@ class BitflipAnalyzerRun(generic.RedirectView):
 
 class ChallengePairAnalyzerMixin:
     model = models.ChallengePairAnalyzer
-    fields = ['puf_generator', 'base_challenge', 'test_challenge', 'number_of_pufs']
-    label = 'Challenge Pair Analyzer'
+    fields = [x.name for x in model.get_edit_fields()]
 
+class ChallengePairAnalyzerCreate(CRUDMixin, AnalysisMixin, ChallengePairAnalyzerMixin, generic.CreateView): pass
 
-class ChallengePairAnalyzerCreate(CRUDMixin, AnalysisMixin, ChallengePairAnalyzerMixin, generic.CreateView):
-    form_header = 'Create Challenge Pair Analyzer'
-
-
-class ChallengePairAnalyzerShow(generic.RedirectView, ChallengePairAnalyzerMixin):
+class ChallengePairAnalyzerShow(ChallengePairAnalyzerMixin, generic.RedirectView):
 
     def get_redirect_url(self, *args, **kwargs):
         obj = self.model.objects.get(pk=self.kwargs.get('pk'))
@@ -267,17 +244,10 @@ class ChallengePairAnalyzerShow(generic.RedirectView, ChallengePairAnalyzerMixin
         return '/analysis/'
 
 
-class ChallengePairAnalyzerUpdate(CRUDMixin, AnalysisMixin, ChallengePairAnalyzerMixin, generic.UpdateView):
-    form_header = 'Edit Challenge Pair Analyzer'
+class ChallengePairAnalyzerUpdate(CRUDMixin, AnalysisMixin, ChallengePairAnalyzerMixin, generic.UpdateView): pass
+class ChallengePairAnalyzerDelete(CRUDMixin, AnalysisMixin, ChallengePairAnalyzerMixin, generic.DeleteView): pass
 
-
-class ChallengePairAnalyzerDelete(CRUDMixin, AnalysisMixin, ChallengePairAnalyzerMixin, generic.DeleteView):
-    form_message = "Are you sure you want to delete Challenge Pair Analyzer {obj}?"
-    form_submit = 'Delete'
-
-
-class ChallengePairAnalyzerRun(generic.RedirectView):
-    model = models.ChallengePairAnalyzer
+class ChallengePairAnalyzerRun(ChallengePairAnalyzerMixin, generic.RedirectView):
 
     def get_redirect_url(self, *args, **kwargs):
         obj = self.model.objects.get(pk=self.kwargs.get('pk'))
@@ -297,16 +267,11 @@ class ChallengePairAnalyzerRun(generic.RedirectView):
 
 class NeighborPredictorMixin:
     model = models.NeighborPredictor
-    fields = ['puf_generator', 'k', 'distance', 'known_set_limit', 'number_of_pufs']
-    label = 'Neighbor Predictor'
+    fields = [x.name for x in model.get_edit_fields()]
 
+class NeighborPredictorCreate(CRUDMixin, AnalysisMixin, NeighborPredictorMixin, generic.CreateView): pass
 
-class NeighborPredictorCreate(CRUDMixin, AnalysisMixin, NeighborPredictorMixin, generic.CreateView):
-    form_header = 'Create Neighbor Predictor'
-
-
-class NeighborPredictorShow(generic.TemplateView):
-    model = models.NeighborPredictor
+class NeighborPredictorShow(NeighborPredictorMixin, generic.TemplateView):
     template_name = 'pufsim/data_result.html'
 
     def get_context_data(self, **kwargs):
@@ -323,17 +288,10 @@ class NeighborPredictorShow(generic.TemplateView):
             context['data'] = data
         return context
 
-class NeighborPredictorUpdate(CRUDMixin, AnalysisMixin, NeighborPredictorMixin, generic.UpdateView):
-    form_header = 'Edit Neighbor Predictor'
+class NeighborPredictorUpdate(CRUDMixin, AnalysisMixin, NeighborPredictorMixin, generic.UpdateView): pass
+class NeighborPredictorDelete(CRUDMixin, AnalysisMixin, NeighborPredictorMixin, generic.DeleteView): pass
 
-
-class NeighborPredictorDelete(CRUDMixin, AnalysisMixin, NeighborPredictorMixin, generic.DeleteView):
-    form_message = "Are you sure you want to delete NeighborPredictor {obj}?"
-    form_submit = 'Delete'
-
-
-class NeighborPredictorRun(generic.RedirectView):
-    model = models.NeighborPredictor
+class NeighborPredictorRun(NeighborPredictorMixin, generic.RedirectView):
 
     def get_redirect_url(self, *args, **kwargs):
         obj = self.model.objects.get(pk=self.kwargs.get('pk'))
