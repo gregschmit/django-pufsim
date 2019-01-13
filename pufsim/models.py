@@ -1,4 +1,5 @@
 from django.db import models, transaction
+import math
 import numpy as np
 import os
 import puflib as pl
@@ -27,7 +28,7 @@ def find_in_path(filename):
 class ModelEnv(models.Model):
     class Meta:
         abstract = True
-    
+
     @classmethod
     def get_display_fields(cls):
         r = []
@@ -304,7 +305,7 @@ class NeighborPredictor(ModelAnalyzer):
 
     class Meta:
         verbose_name = 'Neighbor Predictor'
-    
+
     def __str__(self):
         return "NeighborPredictor[{0}, k={1}, known_set_limit={2}, n_pufs={3}]".format(self.puf_generator, self.k, self.known_set_limit, self.number_of_pufs)
 
@@ -340,7 +341,8 @@ class NeighborPredictor(ModelAnalyzer):
                     match_sum += bet
                 # average them and round
                 try:
-                    prediction = round(match_sum / match_total)
+                    prediction = match_sum / match_total
+                    prediction = 1 if prediction >= 0.5 else 0
                 except ZeroDivisionError:
                     prediction = 0
                 # add to histogram if we successfully predicted the result
