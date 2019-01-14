@@ -337,14 +337,14 @@ class NeighborPredictor(ModelAnalyzer):
                     match_total += 1
                     bet = int(ordered[n][2])
                     if ordered[n][0] < 0:
-                        bet *= -1
+                        bet = 0 if bet else 1
                     match_sum += bet
                 # average them and round
                 try:
                     prediction = match_sum / match_total
                     prediction = 1 if prediction >= 0.5 else 0
                 except ZeroDivisionError:
-                    prediction = 0
+                    prediction = np.random.choice([0, 1])
                 # add to histogram if we successfully predicted the result
                 true = int(p.run(ch))
                 if prediction == true: data[j] += 1
