@@ -11,12 +11,16 @@ import puflib as pl
 from . import models
 
 
-def graph_histogram(data, bins=None, top=1, xstart=0):
+def bar_graph(data, bins=None, top=1, xstart=0, powers_of_two=False):
     b = BytesIO()
     fig = plt.figure()
+    if not powers_of_two:
+        data = [0,] + data
     plt.hist([x for x in range(len(data))], weights=data, bins=[x-0.5 for x in range(len(data)+1)], color='black', rwidth=0.5, ec='black')
     plt.ylim(0, top)
     plt.xlim(xstart-1, len(data))
+    if powers_of_two:
+        plt.xlabel("$2^x$")
     plt.savefig(b, format='png')
     return 'data:image/png;base64, ' + b64encode(b.getvalue()).decode()
 
@@ -27,7 +31,7 @@ class Test(generic.TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         data = [np.random.randint(0, 8) for x in range(50)]
-        image = graph_histogram(data, top=8)
+        image = bar_graph(data, top=8)
         context['src'] = image
         return context
 
@@ -195,8 +199,8 @@ class BitflipAnalyzerShow(BitflipAnalyzerMixin, generic.TemplateView):
         else:
             context['header'] = 'Bitflip Analyzer'
             context['title'] = str(obj)
-            context['src'] = graph_histogram(data, top=obj.number_of_pufs)
-            context['data'] = data
+            context['src'] = bar_graph(data, top=obj.number_of_pufs)
+            context['data_list'] = data
         return context
 
 class BitflipAnalyzerUpdate(CRUDMixin, AnalysisMixin, BitflipAnalyzerMixin, generic.UpdateView): pass
@@ -284,8 +288,8 @@ class NeighborPredictorShow(NeighborPredictorMixin, generic.TemplateView):
         else:
             context['header'] = 'Neighbor Predictor'
             context['title'] = str(obj)
-            context['src'] = graph_histogram(data, top=obj.number_of_pufs, xstart=obj.k)
-            context['data'] = data
+            context['src'] = bar_graph([v for k,v in data.items()], xstart=obj.k, top=100, powers_of_two=obj.hop_by_power_of_two)
+            context['data_dict'] = data
         return context
 
 class NeighborPredictorUpdate(CRUDMixin, AnalysisMixin, NeighborPredictorMixin, generic.UpdateView): pass
@@ -305,5 +309,3 @@ class NeighborPredictorRun(NeighborPredictorMixin, generic.RedirectView):
         try: messages.add_message(self.request, messages.INFO, "NeighborPredictor spawned; refresh to update progress")
         except NameError: pass
         return '/analysis/'
-
-

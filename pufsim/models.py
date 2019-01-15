@@ -298,57 +298,72 @@ class NeighborPredictor(ModelAnalyzer):
         ('gamma', 'gamma'),
         ('hamming', 'hamming'),
     ]
-    k = models.IntegerField(default=1)
+    k = models.IntegerField(default=1, help_text="0 for choose all")
     distance = models.TextField(default='gamma', max_length=30, choices=distance_choices)
     known_set_limit = models.IntegerField(default=2, help_text="The predictor will iterate over `n` from `k` to `known_set_limit`, where `n` is the known set size that we use to predict the next challenge.")
     number_of_pufs = models.IntegerField(default=100)
+    iterations_per_puf = models.IntegerField(default=100)
+    hop_by_power_of_two = models.BooleanField(default=False, help_text="Bins go from K to known_set_limit, if this option is checked, then go from 2^(K-1) to 2^(known_set_limit).")
 
     class Meta:
         verbose_name = 'Neighbor Predictor'
 
     def __str__(self):
-        return "NeighborPredictor[{0}, k={1}, known_set_limit={2}, n_pufs={3}]".format(self.puf_generator, self.k, self.known_set_limit, self.number_of_pufs)
+        return "NeighborPredictor[{0}, k={1}, known_set_limit={2}, n_pufs={3}, iters={4}]".format(self.puf_generator, self.k, self.known_set_limit, self.number_of_pufs, self.iterations_per_puf)
 
     def run(self):
         """
         Build pufs, process them while updating progress, return data.
         """
-        data = [0 for x in range(self.known_set_limit+1)]
+        if self.hop_by_power_of_two:
+            data = dict([(2**x, 0) for x in range(self.k, self.known_set_limit+1)])
+        else:
+            #data = [0 for x in range(self.known_set_limit+1)]
+            data = dict([(x, 0) for x in range(self.k, self.known_set_limit+1)])
         for i in range(self.number_of_pufs):
             self.progress = int(i*100 / self.number_of_pufs)
             self.save()
             p = self.puf_generator.generate_puf()
-            for j in range(self.k, self.known_set_limit+1):
-                # randomly generate j crps
-                crps = p.generate_random_crps(j)
-                # randomly generate challenge
-                ch = pl.generate_random_challenges(1, self.puf_generator.stages)[0]
-                # find k closest crps and average them
-                ordered = [] # tuples of (distance, c, r)
-                for (c, r) in crps:
-                    if self.distance == 'gamma':
-                        ordered.append((pl.gamma(c, ch), c, r))
-                    else:
-                        ordered.append((pl.hamming(c, ch), c, r))
-                ordered.sort(key=lambda tup: abs(tup[0]), reverse=True)
-                match_total = 0
-                match_sum = 0
-                for n in range(self.k):
-                    match_total += 1
-                    bet = int(ordered[n][2])
-                    if ordered[n][0] < 0:
-                        bet = 0 if bet else 1
-                    match_sum += bet
-                # average them and round
-                try:
-                    prediction = match_sum / match_total
-                    prediction = 1 if prediction >= 0.5 else 0
-                except ZeroDivisionError:
-                    prediction = np.random.choice([0, 1])
-                # add to histogram if we successfully predicted the result
-                true = int(p.run(ch))
-                if prediction == true: data[j] += 1
+            for k, bin in data.items():
+                # randomly generate k crps
+                print("generating crps...")
+                crps = p.generate_random_crps(k)
+                print("generated {0} crps...", k)
+                for iter in range(self.iterations_per_puf):
+                    # randomly generate challenge
+                    ch = pl.generate_random_challenges(1, self.puf_generator.stages)[0]
+                    # order the set of CRPs
+                    ordered = [] # tuples of (distance, c, r)
+                    for (c, r) in crps:
+                        if self.distance == 'gamma':
+                            #ordered.append((pl.gamma(c, ch), c, r))
+                            ordered.append({'distance': pl.gamma(c, ch), 'challenge': c, 'response': r})
+                        else:
+                            #ordered.append((pl.hamming(c, ch), c, r))
+                            ordered.append({'distance': pl.hamming(c, ch), 'challenge': c, 'response': r})
+                    ordered.sort(key=lambda dict: abs(dict['distance']), reverse=True)
+                    # average k of them
+                    match_total = 0
+                    match_sum = 0
+                    r = self.k or k
+                    for n in range(r):
+                        match_total += 1
+                        bet = int(ordered[n]['response'])
+                        if ordered[n]['distance'] < 0:
+                            bet = 0 if bet else 1
+                        match_sum += bet
+                    # average them and round
+                    try:
+                        prediction = match_sum / match_total
+                        prediction = 1 if prediction >= 0.5 else 0
+                    except ZeroDivisionError:
+                        prediction = np.random.choice([0, 1])
+                    # add to histogram if we successfully predicted the result
+                    true = int(p.run(ch))
+                    if prediction == true: data[k] += 1
         self.progress = 100
+        for k, bin in data.items():
+            data[k] = 100*bin/(self.number_of_pufs*self.iterations_per_puf)
         self.data = data
         self.save()
         return data
