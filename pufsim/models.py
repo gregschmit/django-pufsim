@@ -217,6 +217,35 @@ class PUFGenerator(ModelEnv):
         return None
 
 
+class CompositePUFGenerator(ModelEnv):
+    """
+    Model for building delay-based PUFs.
+    """
+    archs = [
+        ('xor', 'xor'),
+    ]
+    architecture = models.CharField(max_length=30, choices=archs)
+    child_architecture = models.ForeignKey(PUFGenerator, on_delete=models.PROTECT)
+    number_of_child_pufs = models.IntegerField(default=10)
+
+    class Meta:
+        verbose_name = 'Composite PUF Generator'
+
+    def __str__(self):
+        return "CompositePUFGenerator-{0}[k={1}]".format(self.architecture, self.number_of_child_pufs)
+
+    def get_actions(self):
+        return None
+
+    def generate_puf(self):
+        """
+        Generate a Composite PUF based on the specifications.
+        """
+        if self.architecture == 'xor':
+            return pl.Xor(pufs=[self.child_architecture.generate_puf() for x in range(self.number_of_child_pufs)])
+        return None
+
+
 class BitflipAnalyzer(ModelAnalyzer):
     """
     Build many PUFs and test challenges with bitflips to examine how often the
@@ -236,7 +265,7 @@ class BitflipAnalyzer(ModelAnalyzer):
         """
         Build pufs, process them while updating progress, return data.
         """
-        data = [0 for x in range(self.puf_generator.stages)]
+        data = {k: v for (k, v) in [(x, 0) for x in range(self.puf_generator.stages)]}
         for i in range(self.number_of_pufs):
             self.progress = int(i*100 / self.number_of_pufs)
             self.save()
@@ -326,9 +355,7 @@ class NeighborPredictor(ModelAnalyzer):
             p = self.puf_generator.generate_puf()
             for k, bin in data.items():
                 # randomly generate k crps
-                print("generating crps...")
                 crps = p.generate_random_crps(k)
-                print("generated {0} crps...", k)
                 for iter in range(self.iterations_per_puf):
                     # randomly generate challenge
                     ch = pl.generate_random_challenges(1, self.puf_generator.stages)[0]

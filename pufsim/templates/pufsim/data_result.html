@@ -10,16 +10,8 @@
 <p>{{ text }}</p>
 <h2>Data:</h2>
 <table class="">
-  {% if data_list %}
-    {% for d in data_list %}
-    <tr>
-      <td class="">{{ forloop.counter0 }}</td>
-      <td class="">{{ d }}</td>
-    </tr>
-    {% endfor %}
-  {% endif %}
-  {% if data_dict %}
-    {% for k, d in data_dict.items %}
+  {% if data %}
+    {% for k, d in data.items %}
     <tr>
       <td class="">{{ k }}</td>
       <td class="">{{ d }}</td>
@@ -27,7 +19,4 @@
     {% endfor %}
   {% endif %}
 </table>
-<h2>Dump<h2/>
-{{ data_dict }}
-{{ data_list }}
 {% endblock %}

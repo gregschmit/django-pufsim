@@ -11,16 +11,20 @@ import puflib as pl
 from . import models
 
 
-def bar_graph(data, bins=None, top=1, xstart=0, powers_of_two=False):
+def bar_graph(data, top=1, title='', xlabel='', ylabel=''):
     b = BytesIO()
-    fig = plt.figure()
-    if not powers_of_two:
-        data = [0,] + data
-    plt.hist([x for x in range(len(data))], weights=data, bins=[x-0.5 for x in range(len(data)+1)], color='black', rwidth=0.5, ec='black')
+    fig, ax = plt.subplots()
+    values = list(data.values())
+    indices = list(range(len(values)))
+    bar_width = 0.4
+    bar = ax.bar(indices, values, bar_width, color='black')
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_title(title)
+    ax.set_xticks(indices)
+    ax.set_xticklabels([str(x) for x in data.keys()])
+    fig.tight_layout()
     plt.ylim(0, top)
-    plt.xlim(xstart-1, len(data))
-    if powers_of_two:
-        plt.xlabel("$2^x$")
     plt.savefig(b, format='png')
     return 'data:image/png;base64, ' + b64encode(b.getvalue()).decode()
 
@@ -52,6 +56,8 @@ class Environment(generic.TemplateView):
         context['pdfs'] = models.PDF.objects.all()
         context['puf_generator'] = models.PUFGenerator
         context['puf_generators'] = models.PUFGenerator.objects.all()
+        context['composite_puf_generator'] = models.CompositePUFGenerator
+        context['composite_puf_generators'] = models.CompositePUFGenerator.objects.all()
         return context
 
 
@@ -178,6 +184,18 @@ class PUFGeneratorQuicktest(generic.RedirectView):
         return '/environment/'
 
 
+# PUFGenerator
+
+class CompositePUFGeneratorMixin:
+    model = models.CompositePUFGenerator
+    fields = [x.name for x in model.get_edit_fields()]
+
+class CompositePUFGeneratorCreate(CRUDMixin, EnvironmentMixin, CompositePUFGeneratorMixin, generic.CreateView): pass
+class CompositePUFGeneratorShow(CRUDMixin, EnvironmentMixin, CompositePUFGeneratorMixin, generic.DetailView): pass
+class CompositePUFGeneratorUpdate(CRUDMixin, EnvironmentMixin, CompositePUFGeneratorMixin, generic.UpdateView): pass
+class CompositePUFGeneratorDelete(CRUDMixin, EnvironmentMixin, CompositePUFGeneratorMixin, generic.DeleteView): pass
+
+
 # Bitflip Analyzer
 
 class BitflipAnalyzerMixin:
@@ -200,7 +218,7 @@ class BitflipAnalyzerShow(BitflipAnalyzerMixin, generic.TemplateView):
             context['header'] = 'Bitflip Analyzer'
             context['title'] = str(obj)
             context['src'] = bar_graph(data, top=obj.number_of_pufs)
-            context['data_list'] = data
+            context['data'] = data
         return context
 
 class BitflipAnalyzerUpdate(CRUDMixin, AnalysisMixin, BitflipAnalyzerMixin, generic.UpdateView): pass
@@ -288,8 +306,8 @@ class NeighborPredictorShow(NeighborPredictorMixin, generic.TemplateView):
         else:
             context['header'] = 'Neighbor Predictor'
             context['title'] = str(obj)
-            context['src'] = bar_graph([v for k,v in data.items()], xstart=obj.k, top=100, powers_of_two=obj.hop_by_power_of_two)
-            context['data_dict'] = data
+            context['src'] = bar_graph(data, top=100)
+            context['data'] = data
         return context
 
 class NeighborPredictorUpdate(CRUDMixin, AnalysisMixin, NeighborPredictorMixin, generic.UpdateView): pass
