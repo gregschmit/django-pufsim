@@ -1,3 +1,5 @@
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 from django.db import models, transaction
 import math
 import numpy as np
@@ -228,6 +230,10 @@ class CompositePUFGenerator(ModelEnv):
     child_architecture = models.ForeignKey(PUFGenerator, on_delete=models.PROTECT)
     number_of_child_pufs = models.IntegerField(default=10)
 
+    @property
+    def stages(self):
+        return self.child_architecture.stages
+
     class Meta:
         verbose_name = 'Composite PUF Generator'
 
@@ -375,7 +381,7 @@ class NeighborPredictor(ModelAnalyzer):
                     r = self.k or k
                     for n in range(r):
                         match_total += 1
-                        bet = int(ordered[n]['response'])
+                        bet = ordered[n]['response']
                         if ordered[n]['distance'] < 0:
                             bet = 0 if bet else 1
                         match_sum += bet
@@ -386,7 +392,7 @@ class NeighborPredictor(ModelAnalyzer):
                     except ZeroDivisionError:
                         prediction = np.random.choice([0, 1])
                     # add to histogram if we successfully predicted the result
-                    true = int(p.run(ch))
+                    true = p.run(ch)
                     if prediction == true: data[k] += 1
         self.progress = 100
         for k, bin in data.items():
@@ -394,3 +400,60 @@ class NeighborPredictor(ModelAnalyzer):
         self.data = data
         self.save()
         return data
+
+
+class BiasTester(ModelAnalyzer):
+    """
+    Take `n` sample challenges and find how many responses are 0 vs 1.
+    """
+    puf_type_limit = models.Q(app_label = 'pufsim', model = 'pufgenerator') | models.Q(app_label = 'pufsim', model = 'compositepufgenerator')
+    puf_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, limit_choices_to=puf_type_limit)
+    puf_id = models.PositiveIntegerField()
+    puf_generator = GenericForeignKey('puf_type', 'puf_id')
+    number_of_pufs = models.IntegerField(default=100)
+    n = models.IntegerField(default=100, help_text='How many samples to get for each PUF')
+
+    class Meta:
+        verbose_name = 'Bias Tester'
+
+    def __str__(self):
+        return "BiasTester[{0}, n_pufs={1}, n={2}]".format(self.puf_generator, self.number_of_pufs, self.n)
+
+    def get_actions(self):
+        return super().get_actions() + ['max_average']
+
+    def run(self):
+        """
+        Build pufs, process them while updating progress, return data.
+        """
+        data = dict([(x, 0) for x in range(self.number_of_pufs)])
+        for i in range(self.number_of_pufs):
+            p = self.puf_generator.generate_puf()
+            c = pl.generate_random_challenges(self.n, self.puf_generator.stages)
+            current = 0
+            for j in range(len(c)):
+                self.progress = int(100*(1+j+i*self.n)/(self.number_of_pufs * self.n))
+                print(self.progress)
+                self.save()
+                if p.run(c[j]):
+                    current += 1
+            data[i] = 100*current / self.n
+        self.progress = 100
+        self.data = data
+        self.save()
+        return data
+
+    def max_average(self):
+        try:
+            data = eval(self.data.encode())
+        except SyntaxError:
+            data = "Data Error"
+        sum = 0
+        total = 0
+        for k,v in data.items():
+            if v < 50:
+                sum += 100-v
+            else:
+                sum += v
+            total += 1
+        return sum / total

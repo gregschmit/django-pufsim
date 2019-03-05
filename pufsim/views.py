@@ -72,12 +72,15 @@ class Analysis(generic.TemplateView):
         models.BitflipAnalyzer.check_pids()
         models.ChallengePairAnalyzer.check_pids()
         models.NeighborPredictor.check_pids()
+        models.BiasTester.check_pids()
         context['bitflip_analyzer'] = models.BitflipAnalyzer
         context['bitflip_analyzers'] = models.BitflipAnalyzer.objects.all()
         context['challenge_pair_analyzer'] = models.ChallengePairAnalyzer
         context['challenge_pair_analyzers'] = models.ChallengePairAnalyzer.objects.all()
         context['neighbor_predictor'] = models.NeighborPredictor
         context['neighbor_predictors'] = models.NeighborPredictor.objects.all()
+        context['bias_tester'] = models.BiasTester
+        context['bias_testers'] = models.BiasTester.objects.all()
         return context
 
 
@@ -100,8 +103,7 @@ class CRUDMixin:
                 msg = '{0} {1}'.format(o, 'deleted')
             else:
                 msg = 'action success'
-        try: messages.add_message(self.request, messages.SUCCESS, msg)
-        except NameError: pass
+        messages.add_message(self.request, messages.SUCCESS, msg)
         return self.success_url
 
     def get_context_data(self, **kwargs):
@@ -168,19 +170,16 @@ class PUFGeneratorQuicktest(generic.RedirectView):
     def get_redirect_url(self, **kwargs):
         pk = kwargs.get('pk', None)
         if not pk:
-            try: messages.add_message(self.request, messages.ERROR, "quicktest failed: object not specified")
-            except NameError: pass
+            messages.add_message(self.request, messages.ERROR, "quicktest failed: object not specified")
             return '/environment/'
         try:
             obj = models.PUFGenerator.objects.get(pk=pk)
         except:
-            try: messages.add_message(self.request, messages.ERROR, "quicktest failed: object not found")
-            except NameError: pass
+            messages.add_message(self.request, messages.ERROR, "quicktest failed: object not found")
             return '/environment/'
         res = obj.generate_puf().quicktest()
         msg = "puf from pufg{0}: challenge {1} returned [{2}], {3:.0%} of the time".format(kwargs['pk'], *res)
-        try: messages.add_message(self.request, messages.INFO, msg)
-        except NameError: pass
+        messages.add_message(self.request, messages.INFO, msg)
         return '/environment/'
 
 
@@ -231,13 +230,11 @@ class BitflipAnalyzerRun(generic.RedirectView):
         obj = self.model.objects.get(pk=self.kwargs.get('pk'))
         # if already running, throw notice
         if obj.pid:
-            try: messages.add_message(self.request, messages.WARNING, "BitflipAnalyzer already running")
-            except NameError: pass
+            messages.add_message(self.request, messages.WARNING, "BitflipAnalyzer already running")
             return '/analysis/'
         # if needed, spawn the running process & redirect
         obj.spawn()
-        try: messages.add_message(self.request, messages.INFO, "Bitflip Analyzer spawned; refresh to update progress")
-        except NameError: pass
+        messages.add_message(self.request, messages.INFO, "Bitflip Analyzer spawned; refresh to update progress")
         return '/analysis/'
 
 
@@ -275,13 +272,11 @@ class ChallengePairAnalyzerRun(ChallengePairAnalyzerMixin, generic.RedirectView)
         obj = self.model.objects.get(pk=self.kwargs.get('pk'))
         # if already running, throw notice
         if obj.pid:
-            try: messages.add_message(self.request, messages.WARNING, "ChallengePairAnalyzer already running")
-            except NameError: pass
+            messages.add_message(self.request, messages.WARNING, "ChallengePairAnalyzer already running")
             return '/analysis/'
         # if needed, spawn the running process & redirect
         obj.spawn()
-        try: messages.add_message(self.request, messages.INFO, "ChallengePairAnalyzer spawned; refresh to update progress")
-        except NameError: pass
+        messages.add_message(self.request, messages.INFO, "ChallengePairAnalyzer spawned; refresh to update progress")
         return '/analysis/'
 
 
@@ -319,11 +314,72 @@ class NeighborPredictorRun(NeighborPredictorMixin, generic.RedirectView):
         obj = self.model.objects.get(pk=self.kwargs.get('pk'))
         # if already running, throw notice
         if obj.pid:
-            try: messages.add_message(self.request, messages.WARNING, "NeighborPredictorAnalyzer already running")
-            except NameError: pass
+            messages.add_message(self.request, messages.WARNING, "NeighborPredictorAnalyzer already running")
             return '/analysis/'
         # if needed, spawn the running process & redirect
         obj.spawn()
-        try: messages.add_message(self.request, messages.INFO, "NeighborPredictor spawned; refresh to update progress")
-        except NameError: pass
+        messages.add_message(self.request, messages.INFO, "NeighborPredictor spawned; refresh to update progress")
+        return '/analysis/'
+
+
+# Bias Tester Analyzer
+
+class BiasTesterMixin:
+    model = models.BiasTester
+    fields = [x.name for x in model.get_edit_fields()]
+
+class BiasTesterCreate(CRUDMixin, AnalysisMixin, BiasTesterMixin, generic.CreateView): pass
+
+class BiasTesterShow(BiasTesterMixin, generic.TemplateView):
+    template_name = 'pufsim/data_result.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        obj = self.model.objects.get(pk=self.kwargs.get('pk'))
+        data = eval(obj.data.encode())
+        if obj.pid:
+            context['header'] = 'Bias Tester'
+            context['text'] = "Data not ready"
+        else:
+            context['header'] = 'Bias Tester'
+            context['title'] = str(obj)
+            context['src'] = bar_graph(data, top=100)
+            context['data'] = data
+        return context
+
+
+class BiasTesterUpdate(CRUDMixin, AnalysisMixin, BiasTesterMixin, generic.UpdateView): pass
+class BiasTesterDelete(CRUDMixin, AnalysisMixin, BiasTesterMixin, generic.DeleteView): pass
+
+class BiasTesterRun(BiasTesterMixin, generic.RedirectView):
+
+    def get_redirect_url(self, *args, **kwargs):
+        obj = self.model.objects.get(pk=self.kwargs.get('pk'))
+        # if already running, throw notice
+        if obj.pid:
+            messages.add_message(self.request, messages.WARNING, "BiasTester already running")
+            return '/analysis/'
+        # if needed, spawn the running process & redirect
+        obj.spawn()
+        messages.add_message(self.request, messages.INFO, "BiasTester spawned; refresh to update progress")
+        return '/analysis/'
+
+class BiasTesterMaxAverage(generic.RedirectView):
+
+    def get_redirect_url(self, **kwargs):
+        pk = kwargs.get('pk', None)
+        if not pk:
+            messages.add_message(self.request, messages.ERROR, "object not specified")
+            return '/analysis/'
+        try:
+            obj = models.BiasTester.objects.get(pk=pk)
+        except:
+            messages.add_message(self.request, messages.ERROR, "object not found")
+            return '/analysis/'
+        res = obj.max_average()
+        if isinstance(res, str):
+            messages.add_message(self.request, messages.ERROR, res)
+        else:
+            msg = "calculated bias: %{0}".format(res)
+            messages.add_message(self.request, messages.INFO, msg)
         return '/analysis/'
