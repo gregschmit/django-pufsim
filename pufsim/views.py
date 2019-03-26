@@ -14,7 +14,7 @@ from . import models
 def bar_graph(data, top=1, title='', xlabel='', ylabel=''):
     b = BytesIO()
     fig, ax = plt.subplots()
-    values = list(data.values())
+    values = list(filter(lambda x: isinstance(x, (int, float)), data.values()))
     indices = list(range(len(values)))
     bar_width = 0.4
     bar = ax.bar(indices, values, bar_width, color='black')
@@ -362,24 +362,4 @@ class BiasTesterRun(BiasTesterMixin, generic.RedirectView):
         # if needed, spawn the running process & redirect
         obj.spawn()
         messages.add_message(self.request, messages.INFO, "BiasTester spawned; refresh to update progress")
-        return '/analysis/'
-
-class BiasTesterMaxAverage(generic.RedirectView):
-
-    def get_redirect_url(self, **kwargs):
-        pk = kwargs.get('pk', None)
-        if not pk:
-            messages.add_message(self.request, messages.ERROR, "object not specified")
-            return '/analysis/'
-        try:
-            obj = models.BiasTester.objects.get(pk=pk)
-        except:
-            messages.add_message(self.request, messages.ERROR, "object not found")
-            return '/analysis/'
-        res = obj.max_average()
-        if isinstance(res, str):
-            messages.add_message(self.request, messages.ERROR, res)
-        else:
-            msg = "calculated bias: %{0}".format(res)
-            messages.add_message(self.request, messages.INFO, msg)
         return '/analysis/'

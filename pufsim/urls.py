@@ -14,7 +14,6 @@ urlpatterns = [
     path('neighbor_predictors/<int:pk>/run/', views.NeighborPredictorRun.as_view(), name='run_neighbor_predictor'),
     path('puf_generators/<int:pk>/quicktest/', views.PUFGeneratorQuicktest.as_view(), name='quicktest_pufg'),
     path('bias_testers/<int:pk>/run/', views.BiasTesterRun.as_view(), name='run_bias_tester'),
-    path('bias_testers/<int:pk>/max_average/', views.BiasTesterMaxAverage.as_view(), name='max_average_bias_tester')
 ]
 
 # CRUD helper

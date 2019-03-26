@@ -1,6 +1,7 @@
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.db import models, transaction
+from gfklookupwidget.fields import GfkLookupField
 import math
 import numpy as np
 import os
@@ -408,7 +409,7 @@ class BiasTester(ModelAnalyzer):
     """
     puf_type_limit = models.Q(app_label = 'pufsim', model = 'pufgenerator') | models.Q(app_label = 'pufsim', model = 'compositepufgenerator')
     puf_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, limit_choices_to=puf_type_limit)
-    puf_id = models.PositiveIntegerField()
+    puf_id = GfkLookupField('puf_type')
     puf_generator = GenericForeignKey('puf_type', 'puf_id')
     number_of_pufs = models.IntegerField(default=100)
     n = models.IntegerField(default=100, help_text='How many samples to get for each PUF')
@@ -418,9 +419,6 @@ class BiasTester(ModelAnalyzer):
 
     def __str__(self):
         return "BiasTester[{0}, n_pufs={1}, n={2}]".format(self.puf_generator, self.number_of_pufs, self.n)
-
-    def get_actions(self):
-        return super().get_actions() + ['max_average']
 
     def run(self):
         """
@@ -433,27 +431,23 @@ class BiasTester(ModelAnalyzer):
             current = 0
             for j in range(len(c)):
                 self.progress = int(100*(1+j+i*self.n)/(self.number_of_pufs * self.n))
-                print(self.progress)
                 self.save()
                 if p.run(c[j]):
                     current += 1
             data[i] = 100*current / self.n
         self.progress = 100
+        dataset = list(data.values())
+        data['meta'] = {}
+        data['meta']['mean_deviation'] = self.mean_deviation(dataset)
+        data['meta']['variance'] = self.variance(dataset)
         self.data = data
         self.save()
         return data
 
-    def max_average(self):
-        try:
-            data = eval(self.data.encode())
-        except SyntaxError:
-            data = "Data Error"
-        sum = 0
-        total = 0
-        for k,v in data.items():
-            if v < 50:
-                sum += 100-v
-            else:
-                sum += v
-            total += 1
-        return sum / total
+    def mean_deviation(self, dataset):
+        a = sum(dataset) / len(dataset)
+        return sum([abs(x-a) for x in dataset]) / len(dataset)
+
+    def variance(self, dataset):
+        a = sum(dataset) / len(dataset)
+        return sum([(x-a)**2 for x in dataset]) / len(dataset)
