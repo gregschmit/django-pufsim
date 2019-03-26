@@ -122,8 +122,7 @@ class ModelAnalyzer(models.Model):
 
 class PDF(ModelEnv):
     """
-    Represents a probability distribution function; principle method is
-    `get_rng` which will generate random numbers according to the PDF.
+    Represents a probability distribution function
     """
     distys = [
         ('dirac', 'dirac delta (singleton)'),
@@ -186,7 +185,7 @@ class PDF(ModelEnv):
 
 class PUFGenerator(ModelEnv):
     """
-    Model for building delay-based PUFs.
+    Model for building delay-based PUFs
     """
     archs = [
         ('loop', 'loop'),
@@ -222,7 +221,7 @@ class PUFGenerator(ModelEnv):
 
 class CompositePUFGenerator(ModelEnv):
     """
-    Model for building delay-based PUFs.
+    Model for building delay-based composite PUFs
     """
     archs = [
         ('xor', 'xor'),
@@ -255,8 +254,8 @@ class CompositePUFGenerator(ModelEnv):
 
 class BitflipAnalyzer(ModelAnalyzer):
     """
-    Build many PUFs and test challenges with bitflips to examine how often the
-    response changes.
+    Build many PUFs and test challenges which differ from the base by a single
+    bit being flipped
     """
     puf_generator = models.ForeignKey(PUFGenerator, on_delete=models.CASCADE)
     base_challenge = models.IntegerField(default=0, help_text="Enter the challenge as a decimal value and the system will truncate or add zeros to the most significant bit side (e.g., 12 will be converted to 1100 and then padded to 001100 if the PUF has 6 stages)")
@@ -292,7 +291,7 @@ class BitflipAnalyzer(ModelAnalyzer):
 
 class ChallengePairAnalyzer(ModelAnalyzer):
     """
-    Build many PUFs and test two challenges and how they affect the outcome..
+    Build many PUFs and examine the response of two challenges
     """
     puf_generator = models.ForeignKey(PUFGenerator, on_delete=models.CASCADE)
     base_challenge = models.IntegerField(default=0, help_text="Enter the challenge as a decimal value and the system will truncate or add zeros to the most significant bit side (e.g., 12 will be converted to 1100 and then padded to 001100 if the PUF has 6 stages)")
@@ -327,7 +326,8 @@ class ChallengePairAnalyzer(ModelAnalyzer):
 
 class NeighborPredictor(ModelAnalyzer):
     """
-    Sample PUF `n` times and then find close neighbors to predict.
+    Sample many PUFs multiple times and select k-closest neighbors to predict
+    the outcome (simple average of k-closest)
     """
     puf_generator = models.ForeignKey(PUFGenerator, on_delete=models.CASCADE)
     distance_choices = [
@@ -405,7 +405,7 @@ class NeighborPredictor(ModelAnalyzer):
 
 class BiasTester(ModelAnalyzer):
     """
-    Take `n` sample challenges and find how many responses are 0 vs 1.
+    Take sample challenges and find how what proportion of the responses are 1
     """
     puf_type_limit = models.Q(app_label = 'pufsim', model = 'pufgenerator') | models.Q(app_label = 'pufsim', model = 'compositepufgenerator')
     puf_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, limit_choices_to=puf_type_limit)
