@@ -1,7 +1,6 @@
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.db import models, transaction
-from gfklookupwidget.fields import GfkLookupField
 import math
 import numpy as np
 import os
@@ -409,7 +408,7 @@ class BiasTester(ModelAnalyzer):
     """
     puf_type_limit = models.Q(app_label = 'pufsim', model = 'pufgenerator') | models.Q(app_label = 'pufsim', model = 'compositepufgenerator')
     puf_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, limit_choices_to=puf_type_limit)
-    puf_id = GfkLookupField('puf_type')
+    puf_id = models.PositiveIntegerField()
     puf_generator = GenericForeignKey('puf_type', 'puf_id')
     number_of_pufs = models.IntegerField(default=100)
     n = models.IntegerField(default=100, help_text='How many samples to get for each PUF')
