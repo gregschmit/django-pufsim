@@ -44,7 +44,6 @@ INSTALLED_APPS = [
     'pufsim',
     'pufsim.analysis',
     'pufsim.custom_admin',
-    'genericadmin',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
