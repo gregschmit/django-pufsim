@@ -1,26 +1,12 @@
-from django.apps import apps
-from django.contrib import admin
-from django.urls import path
-from . import views
+from django.urls import path, include
+from django.views.generic import RedirectView
+
+from custom_admin.sites import custom_admin_site
+from pufsim.views import PUFGeneratorQuicktest
+
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('', views.Index.as_view()),
-    path('test/', views.Test.as_view(), name='test'),
-    path('environment/', views.Environment.as_view(), name='environment'),
-    path('analysis/', views.Analysis.as_view(), name='analysis'),
-    path('bitflip_analyzers/<int:pk>/run/', views.BitflipAnalyzerRun.as_view(), name='run_bitflip_analyzer'),
-    path('challenge_pair_analyzers/<int:pk>/run/', views.ChallengePairAnalyzerRun.as_view(), name='run_challenge_pair_analyzer'),
-    path('neighbor_predictors/<int:pk>/run/', views.NeighborPredictorRun.as_view(), name='run_neighbor_predictor'),
-    path('puf_generators/<int:pk>/quicktest/', views.PUFGeneratorQuicktest.as_view(), name='quicktest_pufg'),
-    path('bias_testers/<int:pk>/run/', views.BiasTesterRun.as_view(), name='run_bias_tester'),
+    path('admin/pufsim/pufgenerator/<int:pk>/quicktest', PUFGeneratorQuicktest.as_view(), name='pufgenerator_quicktest'),
+    path('admin/', custom_admin_site.urls),
+    path('', RedirectView.as_view(url='/admin')),
 ]
-
-# CRUD helper
-for m in apps.get_app_config('pufsim').get_models():
-    u = m.get_uri_name()
-    n = m.__name__
-    urlpatterns.append(path(u + '/create/', getattr(views, n + 'Create').as_view(), name='create_' + u))
-    urlpatterns.append(path(u + '/<int:pk>/update/', getattr(views, n + 'Update').as_view(), name='update_' + u))
-    urlpatterns.append(path(u + '/<int:pk>/delete/', getattr(views, n + 'Delete').as_view(), name='delete_' + u))
-    urlpatterns.append(path(u + '/<int:pk>/show/', getattr(views, n + 'Show').as_view(), name='show_' + u))

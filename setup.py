@@ -23,8 +23,7 @@ setup(
     url='https://github.com/gregschmit/django-pufsim',
     author='Gregory N. Schmit',
     author_email='schmitgreg@gmail.com',
-    install_requires=['numpy', 'matplotlib', 'puflib',],
-    dependency_links=['https://github.com/gregschmit/puflib/tarball/master#egg=puflib-0.1'],
+    install_requires=['Django>=2', 'numpy', 'matplotlib', 'puflib',],
     package_data={'pufsim': ['VERSION_STAMP']},
     classifiers=[
         'Environment :: Web Environment',

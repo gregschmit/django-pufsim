@@ -1,0 +1,53 @@
+{% extends "admin/base.html" %}
+{% load i18n static %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block welcome-msg %}{% endblock %}
+
+{% block messages %}
+    {% if messages %}
+    <ul class="messagelist">
+        {% for message in messages %}
+            {% if 'safe' in message.extra_tags %}
+            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message|safe }}</li>
+            {% else %}
+            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+            {% endif %}
+        {% endfor %}
+    </ul>
+    {% endif %}
+{% endblock messages %}
+
+{% block branding %}
+<h1 id="site-name"><a href="{% url 'admin:index' %}">{{ site_header|default:_('Django administration')|safe }} <small style="font-size: .5em">{{ site_header.version }}</small></a></h1>
+{% endblock %}
+
+{% block nav-global %}{% endblock %}
+
+{% block userlinks %}
+    {% if False and site_url %}
+        <a href="{{ site_url }}">{% trans 'View site' %}</a>
+    {% endif %}
+    {% if False and user.is_active and user.is_staff %}
+        {% url 'django-admindocs-docroot' as docsroot %}
+        {% if docsroot %}
+            <a href="{{ docsroot }}">{% trans 'Documentation' %}</a>
+        {% endif %}
+    {% endif %}
+    {% if False and user.has_usable_password %}
+    <a href="{% url 'admin:password_change' %}">{% trans 'Change password' %}</a>
+    {% endif %}
+    {% if False %}<a href="{% url 'admin:logout' %}">{% trans 'Log out' %}</a> {% endif %}
+{% endblock %}
+
+{% block extrahead %}
+<link rel="stylesheet" type="text/css" href="{% static 'admin/css/pufsim.css' %}">
+{% endblock %}
+
+{% block footer %}
+<div style="padding: 0 2em; text-align: right;">
+  <p><a href="https://github.com/gregschmit/puflif">https://github.com/gregschmit/puflib</a></p>
+  <p><a href="https://github.com/gregschmit/django-pufsim">https://github.com/gregschmit/django-pufsim</a></p>
+</div>
+{% endblock %}

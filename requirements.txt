@@ -1,4 +1,4 @@
 Django>=2.0
 numpy>=1.10.0
--e git://github.com/gregschmit/puflib#egg=puflib
+puflib
 matplotlib>=2.0

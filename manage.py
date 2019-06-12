@@ -1,20 +1,28 @@
-#!/usr/bin/env python
-
+#!/usr/bin/env python3
 """
-A simple `manage.py` for testing and running `pufsim` standalone.
+Proxy python3 script for the ``manage.py`` in the ``pufsim`` package.
 """
-
 import os
+import subprocess
 import sys
 
 if __name__ == "__main__":
-    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "pufsim.settings")
-    try:
-        from django.core.management import execute_from_command_line
-    except ImportError as exc:
-        raise ImportError(
-            "Couldn't import Django. Are you sure it's installed and "
-            "available on your PYTHONPATH environment variable? Did you "
-            "forget to activate a virtual environment?"
-        ) from exc
-    execute_from_command_line(sys.argv)
+    # get this directory
+    d = os.path.dirname(os.path.abspath(__file__))
+
+    # set the dev directory env variable
+    os.environ["DJANGO_PUFSIM_DEVPATH"] = d
+
+    # spawn the app manage.py
+    args = sys.argv.copy()
+    args[0] = os.path.join(d, 'pufsim/manage.py')
+    args.insert(0, sys.executable)
+    print("REPO LEVEL EXECUTION\ncwd: {}".format(d))
+    print("argv: {}\nspawning...".format(str(args)))
+    r = subprocess.run(
+        args,
+        stdout=sys.stdout.fileno(),
+        stderr=sys.stderr.fileno(),
+        stdin=sys.stdin.fileno(),
+        cwd=d,
+    )

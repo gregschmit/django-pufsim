@@ -1,0 +1,38 @@
+#header .login #header h1 a, #branding h1, #branding h1 a:link, #branding h1 a:visited {
+  color: #eee;
+}
+
+#header {
+  background: #0f67c5;
+}
+
+.module h2, .module caption, .inline-group h2 {
+  background: #0f67c5;
+}
+
+div.breadcrumbs {
+  background: #0f67c5;
+}
+
+
+/* buttons and button-links */
+.button, input[type="submit"], input[type="submit"].default, input[type="button"], .submit-row input, a.button {
+  background-color: #0f67c5;
+}
+.button:hover, input[type="submit"]:hover, input[type="submit"].default:hover, input[type="button"]:hover, .submit-row input:hover, a.button:hover {
+  background-color: #0f3cc5;
+}
+a.button:link, a.button:visited, a.button:active { color: #eee; }
+a.button:hover { color: #fff; }
+
+a:link, a:visited {
+  color: #0f67c5;
+}
+
+.calendar caption, .calendarbox h2 {
+  background-color: #f5dd5d;
+}
+
+.dashboard #content {
+  width: 900px;
+}
