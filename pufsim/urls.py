@@ -1,8 +1,8 @@
 from django.urls import path, include
 from django.views.generic import RedirectView
 
-from custom_admin.sites import custom_admin_site
-from pufsim.views import PUFGeneratorQuicktest
+from .custom_admin.sites import custom_admin_site
+from .views import PUFGeneratorQuicktest
 
 
 urlpatterns = [
